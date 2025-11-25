@@ -1,0 +1,2 @@
+read A B C <<< alfa
+echo 1 $A 2 $B 3 $C

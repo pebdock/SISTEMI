@@ -1,0 +1,72 @@
+- tee prende dallo stdin delle righe e le scrive anche nel/nei file che gli vengono passati come argomenti
+
+- se faccio tail -f mi fara continuare a vedere i caratteri del file specificato fino a quando continuo ad aggiungergli delle righe (si puotrà terminare utilizzando ctrl+c)
+
+- Con cut oltre a specificare i byte possiamo anche chiedere che ci vengano dati dei campi (sequenze di caratteri delimitati da caratteri specifici definendone il carattere delimitatore)
+
+cut --delim="a" -f 2- <nomefile>
+
+quindi possiamo farci dare porzioni di righe che non siano byte
+
+- sed per modifucare le righe, definita una stringa dove il comando che do al primo argomento di sed indico
+
+sed 's/togli/metti/'
+
+con s indico che deve trovare la prima occorrenza della stringa togli e sostituirla con metti. Se aggiungo una g in fondo dico che devono essere modificate tutte le occorrenze di quella parola
+
+sed 's/^.//'
+
+dove ^. indica primo carattere di ogni riga mentre .$ indica l'ultima, con ... i primi 3 e .{4} indica i primi 4
+alla fine di sed posso mettere il nome di un file per utilizzarlo in quel file senza modificarne il conetnuto ma cambiando solo l'output del comando.
+se aggiungo il flag -i (o --inplace) non vedo output perchè va a fare le modifiche richieste sul file passato come argomento
+
+(man sed per vedere altri dettagli)
+
+- grep CUF *.txt (cerco i file che contengono CUF)
+- il flag -n in echo serve per non andare a capo
+
+per vedere i PID usiamo:
+- $$ mi fa vedere il PID della shell più esterna
+- BASHPID mi fa vedere il PID della shell attuale
+BASHPID è megli ma non presente in vecchie versioni BASH
+
+- La sessione è l'accoppiata tra terminale di controllo, shell interattiva bash usata per gestirlo e tutti i processi figli/nipoti/ecc... della shell interattiva.Nel caso di problemi con bash interattiva o terminale di controllo in questo modo tutti i processi vengono eliminati tramite un segnale di terminazione detto SIGHUP.
+- col comando disown sgancia un processo in esecuzione dal gruppo di processi a cui appartiene.
+-Con noapp lancio un processo già sganciato
+
+- col comando kill posso inviare un segnale es.-9 per dirgli di terminare + il pid del processo da temrinare
+[marcop@SamsungGalaxyBook3360 ~]$ kill -9 22708
+Ucciso                     bash
+
+-con & lancio direttamente il processo in background
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ls &
+[1] 22920
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ 11-11-2025      4bis_laboratorioshell.pdf  Esercizi5-11-11-2025  Laboratorio2.txt
+18-11-2025.txt  errore.txt                 Laboratorio1.txt
+
+[1]+  Completato                 ls --color=auto
+[marcop@SamsungGalaxyBook3360 SISTEMI]$
+
+- $! indica il PID dell'ultimo processo lanciato in background.
+
+- CTRL+Z sospende il processo in foreground
+- CTRL+C lo termina
+
+- col comando fg posso farlo riprendere e riparte in foreground da dove lo avevamo sospeso
+- al contrario con bg lo lancio in background quindi la mia shell ha ancora il controllo
+- sia fg che bg permettono di specificare il job identifier del processo che voglio far partire (%<job-id>)
+
+- kill manda un segnale, se lo scrivo senza alcun segnale determinato ma scrivo solo il processo mando per default il segnale -15 SIGTERM che ordina al processo di terminare. Il processo può decidere di non accettarlo. Al contrario il segnale SIGKILL -9 non si può ignorare.
+-Se al posto del PID o job identifier metto -1 allora sto ordinando a tutti i processi figli di terminare. Esistono anche altri segnali:
+-SIGTSTP=CTRL+Z
+-SIGCONT=riprende processo sospeso
+-SIGINT=CTRL*C
+
+- il comando trap dice che quando riceverai uno dei segnali specificati svolgi l'azione definita. In questo modo si possono creare processi che interagiscono fra loro tramite segnali
+
+- i processi padri vengono informati della morte dei processi figli. Col comando wait il processo padre attende la terminazione del figlio.Il wait restituisce l'Exit Status del processo figlio.
+
+
+
+
+

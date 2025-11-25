@@ -1,0 +1,61 @@
+Es:28
+La soluzione utilizza il comando cut in questo modo:
+[marcop@SamsungGalaxyBook3360 Esercizi5-11-11-2025]$ cut -b 4-5,10-15 es28.txt
+rc8
+oves
+kdsn
+slls*
+ksksj*
+
+Es:29
+[marcop@SamsungGalaxyBook3360 Esercizi5-11-11-2025]$ cut -b 4-5,10-15 es28.txt | sed 's/\t//g' | sed 's/*//g' | sed 's/ //g'
+rc8
+oves
+kdsn
+slls
+ksksj
+ricordarsi che g indica che elimina tutte le occorrenze del carattere specificato da sed
+
+Es:30
+[marcop@SamsungGalaxyBook3360 Esercizi5-11-11-2025]$ cut -b 4-5,10-15 es28.txt | sed 's/\t//g' | sed 's/*//g' | sed 's/ //g' | wc -c
+25
+nel wc devo mettere per forza -c se voglio visualizzare solo il numero di caratteri
+
+Es:36
+SI=0
+while read riga ; do
+        if(( ${SI} % 2 == 0 ));
+        then echo "${riga}"
+         fi
+        SI=$(($SI+1))
+done
+ricordarsi bene come fare il costrutto while e if e come funziona il read
+
+Es:36.1
+VAL=$RANDOM
+COUNT=0;
+echo $VAL
+while(($VAL % 10 != 2));do
+        VAL=$RANDOM
+        COUNT=$(($COUNT+1))
+        echo $VAL;
+done
+ricordari come funziona la rand
+
+Es:37
+Come faccio a vedere se ho una directory o meno?
+LungNomiDirectory=0
+NotDir=0
+
+for riga in $(ls ./); do
+    if [[ -d ${riga} ]]; then
+        LungNomiDirectory=$(($LungNomiDirectory + 1 + ${#riga}))
+    else
+        NotDir=$(($NotDir + 1))
+    fi
+done
+
+echo $LungNomiDirectory
+echo $NotDir
+
+utilizzo [[ -d nome ]]

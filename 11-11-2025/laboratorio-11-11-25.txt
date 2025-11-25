@@ -1,0 +1,308 @@
+LEZIONE 11/11/2025 SISTEMI OPERATIVI
+
+- L'operatore >& (non &> xhe mette in esecuzione processo figlio e ridirezione stdout e stderr in un altro file) ha bisogno di due valori numerici file descriptor che sono già stati aperti prima. Con N>&M ridirezionamo lo stream di N sullo stream di M. Se scrivo usando il file descriptor N è come se scrivessi usando il file descriptor M.
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ls no.txt 2>&1
+ls: impossibile accedere a 'no.txt': File o directory non esistente
+il messaggio di errore arriva nell'stdout non nell'stderr
+
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo aiuto 1>&2
+aiuto
+La tabella dei file aperti di echo ridireziona fd 1 su fd 2. Il messaggio d'aiuto viene mandato sullo stderr
+
+Non bisogna confonderlo con > e basta perche se scrivo:
+ls no.txt 2>1 1 viene visto come un file e si ridirige stderr di ls su 1
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ls no.txt 2>1
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ more 1
+ls: impossibile accedere a 'no.txt': File o directory non esistente
+
+Se non voglio vedere output ma vedere solo messaggi d'errore faccio:
+NO!
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ls no.txt 1>errore.txt
+ls: impossibile accedere a 'no.txt': File o directory non esistente
+non devo fare in questo modo perche creo un nuovo file
+SI!
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ls no.txt 1>/dev/null
+ls: impossibile accedere a 'no.txt': File o directory non esistente
+/dev/null è una specie di cestino, comodo quando abbiamo necessità di buttare via qualcosa che viene mandato su un file descriptor.
+
+
+-Può capitare di dover lanciare una pipe in cui ridirigo sia lo stdout che stderr del processo a sinistra verso lo stdin del processo a destra della pipe in questo caso uso |&
+
+
+-Possibile lanciare più processi lanciandoli con più pipe
+program1 | program2 | program3
+quando program1 ha stdout program2 chiude stdin e decide cosa fare
+quando program2 ha stdout program 3 chiude stdin e decide cosa fare
+
+
+-Posso mettere il ridirezionamento anche alla fine del while dopo done con ...done > pippo.txt quindi l'output del while andra nel file pippo.txt
+es.
+NUM=1
+echo "${NUM}"
+while(("${NUM}" <= "3")) ; do
+    echo "${NUM}"
+    ((NUM=${NUM}+1))
+done > pippo.txt
+echo "${NUM}"
+
+quindi nel file pippo.txt avrò:
+1
+2
+3
+mentre a video:
+1
+4
+
+
+-Si può applicare ridirezionamento anche sullo stdin:
+while read nome cognome data ; do
+    if read accusa verdetto ; then
+        echo $cognome errore $verdetto
+    else
+        echo terminazione inaspettata del file di input
+        exit1
+    fi
+done < assoluzioniinaspettate.txt
+
+dove assoluzioniinaspettate.txt è:
+vittorio ghini 17/07/1994
+blasfemia      assolto per mancanza prove
+giovanni pau   20/07/2005
+ubriachezza    denuncia ritirata
+
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ./slide168.sh
+ghini errore assolto per mancanza prove
+pau errore denuncia ritirata
+
+Anche i comandi dentro le condizioni vengono ridirezionati (for,if,while...)
+
+
+-L'operatore << serve a ridirezionare lo stdin di un comando o blocco di coomandi prendendo input non da un file ma da un blocco di righe scritte dopo l'operatore
+es.
+while read A B C ; do echo $B ; done <<FINE
+uno due tre quattro
+alfa beta gamma
+gatto cane
+FINE //NON DEVE ESSERCI UNO SPAZIO DEVE ESSERE A INIZIO RIGA
+echo ciao
+
+le righe che stanno dietro a << avranno lo standard input ridiretto al blocco FINE
+
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ ./slide172.sh
+due
+beta
+cane
+ciao
+
+(stampa B ovvero la seconda stringa della riga fino a quando il blocco di righe non finisce, poi ciao perchè è un comando a parte fuori dal blocco)
+
+Posso anche mettere dei valori parametrici in questo modo:
+while read A B C ; do echo $B ; done <<FINE
+uno due tre quattro
+alfa ${VAR} gamma
+gatto cane
+FINE
+echo ciao
+
+[marcop@SamsungGalaxyBook3360 ~]$ VAR=contenuto
+[marcop@SamsungGalaxyBook3360 ~]$ nano slide173.sh
+[marcop@SamsungGalaxyBook3360 ~]$ chmod 700 slide173.sh
+[marcop@SamsungGalaxyBook3360 ~]$ ./slide173.sh
+due
+gamma
+cane
+ciao
+[marcop@SamsungGalaxyBook3360 ~]$ export VAR
+[marcop@SamsungGalaxyBook3360 ~]$ ./slide173.sh
+due
+contenuto
+cane
+ciao
+[marcop@SamsungGalaxyBook3360 ~]$
+
+
+-Con <<< viene ridirezionata nell'input la prima parola dopo <<<
+read A B C <<< alfa
+echo 1 $A 2 $B 3 $C
+
+[marcop@SamsungGalaxyBook3360 ~]$ ./slide174-1.sh
+1 alfa 2 3
+
+invece se faccio:
+read A B C <<< "alfa beta gamma"
+echo 1 $A 2 $B 3 $C
+
+[marcop@SamsungGalaxyBook3360 ~]$ ./slide174-2.sh
+1 alfa 2 beta 3 gamma
+
+se non metto i caratteri di quoting
+read A B C <<< alfa beta gamma
+echo 1 $A 2 $B 3 $C
+allora avrò solo 1 alfa 2 3 come output
+
+Posso anche mettere dei valori parametrici:
+VAR=paperino
+read A B C <<< ${VAR}
+echo 1 $A 2 $B 3 $C
+//ovviamente se scrivo una frase e non metto i caratteri di quoting stamperà soltanto la prima parola
+
+
+-Con le parentesi tonde posso ottenere l'output di un intero gruppo di comandi:
+
+( ls;pwd;whoami ) > out.txt
+
+[marcop@SamsungGalaxyBook3360 ~]$ ./slide175.sh
+[marcop@SamsungGalaxyBook3360 ~]$ cat out.txt
+Documenti
+Immagini
+Modelli
+Musica
+out.txt
+Pubblici
+Scaricati
+Scrivania
+slide173.sh
+slide174-1.sh
+slide174-2.sh
+slide175.sh
+Video
+/home/marcop
+marcop
+
+[marcop@SamsungGalaxyBook3360 ~]$ ( cat out.txt ; cat file2.txt ) | grep sh
+slide173.sh
+slide174-1.sh
+slide174-2.sh
+slide175.sh
+cat: file2.txt: File o directory non esistente
+//In questo modo ho sia il testo di out che di file2 con grep che cerca sh
+
+[marcop@SamsungGalaxyBook3360 ~]$ ( cat out.txt ; cat file2.txt ) | grep sh
+slide173.sh
+slide174-1.sh
+slide174-2.sh
+slide175.sh
+cat: file2.txt: File o directory non esistente
+//cerca esistente e grazie a |& vengono anche lette le righe prodotte dallo stderr e stdout
+
+[marcop@SamsungGalaxyBook3360 ~]$ cat out.txt ( read riga1; usa riga1; read riga2; usa riga2 )
+la shell figlia legge come se fosse da stdin il contenuto del file file1.txt
+read riga1 ecc... legge la prima riga del file 1, la usa ecc...
+
+
+-Nuovi modi per gestire file di testo
+head legge con -n £ le prime 3 righe di out.txt mettendole in output:
+[marcop@SamsungGalaxyBook3360 ~]$ cat out.txt
+Documenti
+Immagini
+Modelli
+Musica
+out.txt
+Pubblici
+Scaricati
+Scrivania
+slide173.sh
+slide174-1.sh
+slide174-2.sh
+slide175.sh
+Video
+/home/marcop
+marcop
+[marcop@SamsungGalaxyBook3360 ~]$ head -n 3 out.txt
+Documenti
+Immagini
+Modelli
+
+-[marcop@SamsungGalaxyBook3360 ~]$ head -n 3
+aaaa
+aaaa
+bbbb
+bbbb
+cccc
+cccc
+mi da le prime 3 righe che scrivo
+
+[marcop@SamsungGalaxyBook3360 ~]$ tail -n 2 out.txt
+/home/marcop
+marcop
+mi da le ultime due righe del file
+se non metto il nome di un file devo dire che lo stdin è finito premendo ctrl+d
+
+se non passo nomi di file a cat legge input e passa in output
+
+[marcop@SamsungGalaxyBook3360 ~]$ cat <<FINE
+> ciao
+> xxxx
+> daddsf
+> FINE
+ciao
+xxxx
+daddsf
+Ripete tutte le righe fino a FINE
+
+[marcop@SamsungGalaxyBook3360 ~]$ sed 's/AL/CUF/'
+s indica ordine di sostituzione
+tra il primo slash e il secondo c'è la stringa da cercare in input
+tra il secondo e il terzo c'è quella da sostituire
+[marcop@SamsungGalaxyBook3360 ~]$ sed 's/AL/CUF/'
+GATTOALLLALLLALLLA
+GATTOCUFLLALLLALLLA
+
+se dopo ultimo slash aggiungo g sostituisce tutte le occorrenze
+[marcop@SamsungGalaxyBook3360 ~]$ sed 's/AL/CUF/g'
+ALALALALALALALALALALALALALALALALALALALALALAL
+CUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUFCUF
+
+[marcop@SamsungGalaxyBook3360 ~]$ cat out.txt | sed 's/sh/cambiato/g'
+Documenti
+Immagini
+Modelli
+Musica
+out.txt
+Pubblici
+Scaricati
+Scrivania
+slide173.cambiato
+slide174-1.cambiato
+slide174-2.cambiato
+slide175.cambiato
+Video
+/home/marcop
+marcop
+
+
+-Il comando cut taglia la riga letta
+con -b posso indicare l'elenco dey byte da considerare
+[marcop@SamsungGalaxyBook3360 ~]$ echo 123456789 | cut -b 3-5
+345
+[marcop@SamsungGalaxyBook3360 ~]$ echo sistemioperativi | cut -b 3-5
+ste
+
+con -c invece posso indicare i caratteri da considerare
+posso usare come parametri anche:
+3-
+-5
+
+Posso mettere tutti questi comandi in pipe
+
+La variabile $RANDOM mi da un calore random
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $RANDOM
+23385
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6 ))
+0 //per averlo tra 0 e 5
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+8 // per averlo tra 3 e 8
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+3
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+6
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+5
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+7
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+4
+[marcop@SamsungGalaxyBook3360 11-11-2025]$ echo $(( $RANDOM % 6  + 3 ))
+3
+
+

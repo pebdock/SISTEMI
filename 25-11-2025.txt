@@ -1,0 +1,51 @@
+- killall serve per terminare tutti i processi con un determinato nome
+- operatori %%,%,##,# messi dopo il nome di una variabile e seguiti da un pattern.
+
+es1.%%
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ VAR="[13] qualcosa con [o] fine"
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR%%]*}
+[13
+// rimuovo il suffisso più lungo che fa match quindi dalla prima ] facendo rimanere solo [13
+
+es2.%
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR%]*}
+[13] qualcosa con [o
+// in questo caso elimina il più corto suffisso
+
+es3.##
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR##*[}
+o] fine
+// rimuove il prefisso più lungo
+
+es4.#
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR#*[}
+13] qualcosa con [o] fine
+// rimuove il prefisso piu corto
+DA NON CONFONDERE CON ${#VAR} CHE DICE QUANTO E' LUNGA LA STRINGA
+
+- operatore /
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR/"["/"cambiato"}
+cambiato13] qualcosa con [o] fine
+// cambio la prima occorrenza di [ con cambiato
+
+- operatore //
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR//"["/"cambiato"}
+cambiato13] qualcosa con cambiatoo] fine
+// cambia tutte le occorrenze
+Se al posto della seconda / metto:
+- % sostituisce solo se si trova alla fine
+- # solo se si trova all'inizio
+
+- operatore :
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR:4}
+qualcosa con [o] fine
+// l'offset rappresenta l'indice del carattere da 0 fino alla fine. Qui ho tolto i caratteri da 0 a 4 quindi "[13] "
+
+- operatore : :
+[marcop@SamsungGalaxyBook3360 SISTEMI]$ echo ${VAR:4:10}
+qualcosa
+
+- per trovare variabili con determinati nomi
+[marcop@SamsungGalaxyBook3360 /]$ echo ${!B*}
+BASH BASHOPTS BASHPID BASHRCSOURCED BASH_ALIASES BASH_ARGC BASH_ARGV BASH_ARGV0 BASH_CMDS BASH_COMMAND BASH_COMPLETION_VERSINFO BASH_LINENO BASH_LOADABLES_PATH BASH_MONOSECONDS BASH_SOURCE BASH_SUBSHELL BASH_VERSINFO BASH_VERSION
+

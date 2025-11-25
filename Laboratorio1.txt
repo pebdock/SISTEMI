@@ -1,0 +1,5 @@
+Laboratorio 1
+
+Ogni volta che lancio un programma dalla bash questo lavora in un ambiente 
+separato dalla bash, una copia della shell che lo ha chiamato. Nello script che lancio solo alcune delle variabili vengono copiate dette variabili d'ambiente.
+RICORDARE DI NON METTERE SPAZI DURANTE ASSEGNAZIONE 
