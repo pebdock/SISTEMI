@@ -17,10 +17,13 @@
     - tilde expansion ~/nomedir (abbrevia l'attuale home directory) o ~username (indica la home directory di username)
 
     - parameter and variable expansion
-        $1
-        $?
-        $!
-        ${var} per poter distinguere il nome di una variabile
+        - $1 indica il primo argomento del comando
+        - $# il numero di argomenti passati allo script
+        - $* tutti gli argomenti passati a riga di comando separati da spazi
+        - $@ uguale a $* ma se quotato fli argomenti vengono quotati separatamente
+        - $?
+        - $!
+        - ${var} per poter distinguere il nome di una variabile
 
     - arithmetic expansion $(( ))
 
@@ -89,3 +92,5 @@
 - ; può essere usato per eseguire più comandi allo stesso momento
 
 - TAB attuva la funzionalità di autocompletamento
+
+-

@@ -1,0 +1,48 @@
+Esercizi LAB03
+
+22_
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ touch senzaspazio1.txt
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ touch senzaspazio2.txt
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ touch "con spazio.txt"
+Potevo anche eseguirli tutti in una volta con touch
+
+23_
+lancia.sh
+#!/bin/bash
+echo "Ho passato $# argomenti allo script"
+./stampaargs.sh $#  "$@"
+
+stampaargs.sh
+#!/bin/bash
+for args in "$@" ; do
+	echo ${args};
+done
+
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ ./lancia.sh *spazio*
+Ho passato 3 argomenti allo script
+3
+con spazio.txt
+senzaspazio1.txt
+senzaspazio2.txt
+
+24_
+lancia2.sh
+#!/bin/bash
+export NOMIFILES="$# $@"
+./stampaargs2.sh
+
+stampaargs2.sh
+#!/bin/bash
+for args in ${NOMIFILES} ; do
+        echo ${args};
+done
+
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ ./lancia2.sh *spazio*
+3
+con
+spazio.txt
+senzaspazio1.txt
+senzaspazio2.txt
+
+25_
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ rm -rf *spazio*
