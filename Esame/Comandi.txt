@@ -1,0 +1,91 @@
+- strace [nomecomando] - posso vedere tutte le system call che quel comando esegue fino alla sua terminazione
+
+- pwd [nomecomando] indica il percorso completo in cui l'utente si trova, da / fino alla directory
+
+- Le principali expansions che possono essere effettuate sono:
+    - history expansion !123
+        - history per vedere la cronologia dei comandi lanciati
+            - ![numcom] per eseguire il comando associato a quel numero
+            - !strunga per eseguire il comando più recentemente lanciato con quella stringa
+
+    - brace expansion a{damn,czk,bubu}e (echo a{bu,ba,be} stamperà abu aba abe)
+        - non possono essere presenti tab o white spaces se non protetti da \
+        - possibile annidarle dentro ad percorsi e inserirvici variabili
+        - possibile scrittura anche con:
+            -{1..6} e {b..k}
+
+    - tilde expansion ~/nomedir (abbrevia l'attuale home directory) o ~username (indica la home directory di username)
+
+    - parameter and variable expansion
+        $1
+        $?
+        $!
+        ${var} per poter distinguere il nome di una variabile
+
+    - arithmetic expansion $(( ))
+
+    - command substitution ` ` $( )
+
+    - word splitting
+
+    - pathname expansion
+        - * sostituito da una qualunque sequenza di caratteri
+        - ? sostituito esattamente da un singolo carattere
+        - [elenco] sostituito da un singolo carattere tra quelli specificati
+            - [abk] un solo carattere tra a,b ek
+            - [1-6] un solo numero tra 1 e 6
+            - [c-f] un solo carattere tra c e f
+            - [[:digit:]] solo una cifra
+            - [[:upper:]] solo un carattere maiuscolo
+            - [[:lower]] solo un carattere minuscolo
+
+    - quote removal
+
+- PATH è una variabile d'ambiente che contiene le directory in cui la bash cerca i file che specifico
+
+- Ogni utente ha un username con userID e un gruppo con groupname e groupID, un utente appartiene a un gruppo primario e può appartenere ad altri gruppi secondari
+    - ciascun file e directory appartiene ad un utente
+    - ciascun file e directory è associata ad un gruppo
+
+- chown per cambiare il proprietario di un file
+    chown nuovoproprietario nomefile
+
+- chgrp per cambiare gruppo
+
+- chmod (r vale 4, w vale 2 e x vale 1) per cambiare permessi di accesso a un file.
+    chmod [user-value between 0-7] [group-value between 0-7] [others-value between 0-7] nomefile
+    - setuid è rappresentato con s nelle user permission e in esecuzione il processo associato all'esecuzione ottiene anche i permessi dell'owner, si può indicare in chmod mettendo un 4 davanti ai 3 valori percedentemente citati (Esiste anche setgid con 2 e sticky bit con 1)
+
+- ls per vedere i file in una determinata directory, posso aggiungere anche delle flag ( visualizzabili in dettaglio con ls --help)
+
+- #!bin/bash va indicato all'inizio di uno script per capire che interprete dei comandi usare
+
+- Le variabili possono essere:
+    - locali
+    - d'ambiente
+
+- export per rendere d'ambiente una var locale
+
+- set per vedere tutte le variabili e funzioni bash implementate:
+    - con il flag +o e -o history, per disabilitare o riattivare la memorizzazione di history
+    - con -a e +a per avere variabili fin dall'inizio d'ambiente o fare in modo che rimangano locali
+    - se ho eseguito set -a potro rendere le variabili da ambiente a locali con export -n
+
+- unset può essere usato per eliminare delle variabili
+
+- source [script] o . [script] per eseguire uno script senza creare una subshell
+
+- man [nomecomando] per vedere tutto quello che posso fare con quel comando
+
+- Shell non interattiva lanciata con -c [percorsoscript]
+    Non analizza alcun file prima di avviarsi
+- Shell interattiva non di login lanciata senza argomenti (non -c -l e --login)
+    Analizza solo .bashrc
+- Shell interattiva di login lanciata con -l e --login
+    Analizza /etc/profile
+    Analizza il primo file che trova tra .bash_profile .bash_login e .profile
+    Analizza .bashrc
+
+- ; può essere usato per eseguire più comandi allo stesso momento
+
+- TAB attuva la funzionalità di autocompletamento
