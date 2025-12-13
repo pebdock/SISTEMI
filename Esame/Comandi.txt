@@ -21,15 +21,23 @@
         - $# il numero di argomenti passati allo script
         - $* tutti gli argomenti passati a riga di comando separati da spazi
         - $@ uguale a $* ma se quotato fli argomenti vengono quotati separatamente
-        - $?
+        - $? indica il valore dell'exit status dell'ultimo comando
         - $!
         - ${var} per poter distinguere il nome di una variabile
+        - ${#var} numero di caratteri dell contenuto della variabile var
 
     - arithmetic expansion $(( ))
+        - (()) racchiude un intera riga di comando semplice
+        - $(()) se bisogna racchiudere solo una parte di una riga di comando
 
-    - command substitution ` ` $( )
+    - command substitution ` ` $( ) sostituiscono a runtime la riga di comando di un programma con l'stdout del programma scritto all'interno
+
+    - quoting " " impedisce la sostituzione di wildcards e l'uso di ; come separatore di comandi ma permette di sostituire variabili con il loro comando e permette esecuzione di comandi
+    - quoting ' ' impedisce di usare ; come separatore e no wildcards, non sostituisce variabili col loro contenuto e neanche l'esecuzione di comandi
+    - quoting $' ' uguale a ' ' ma sostituisce le backlash escaped characters (\a alert \e \f feed \r carriage return \v vertical tab \' single quote \nnn carattere con valore ottale nnn \xHH carattere con valore hex HH \cx controlx character \b backspace \E escape \n newline \t tab orizzontale \\ backslash \" double quote)
 
     - word splitting
+        - la variabile IFS contiene i caratteri che fungono da separatori delle parole negli elenchi di nomi.
 
     - pathname expansion
         - * sostituito da una qualunque sequenza di caratteri
@@ -91,6 +99,63 @@
 
 - ; può essere usato per eseguire più comandi allo stesso momento
 
-- TAB attuva la funzionalità di autocompletamento
+- TAB attiva la funzionalità di autocompletamento
 
--
+- Posso avere anche vari tipi di espressioni condizionali:
+   - si scrivono tra [[ ]] (output 0 vero, != 0 falso)
+   - posso usare ! || && e parentesi tonde per ordine
+   - per confronti aritmetici uso -eq -ne -le -lt -ge -gt
+   - per confronti lessicografici uso -z lunghezza della stringa 0 -n lunghezza della stringa !=0 == stringhe uguali = != stringhe diverse < <= >= > (usa ordine lessicografico)
+   - per condiziomi su file uso -d file esiste e directory -e file esiste -f file esiste ed è file -h file esiste ed è link simbolico -r file readable -s file esiste e dimensione != 0 -t vero se fd è aperto -w file esiste e si può scrivere -x file esiste ed è eseguibile -O file esiste ed appartiene all'effective user id -G file esiste ed appartiene all'effective group id -L file esiste ed è un link simbolico)
+   - per confrontare due file in base alla loro data di creazione (-nt o -ot)
+
+- find può essere usato per cercare dei file (find --help per più info)
+
+- con ${!nomevar} si può effettuare un riferimento indiretto a una variabile
+    varA=bubu
+    varB=varA
+    echo ${!varB} stampa a video bubu
+
+- exit status di un programma è 0 se va tutto bene o diverso da 0 se errore (valore da 0 a 255)
+    - Le espressioni matematiche $(()) oppure (()) hanno un exit status:
+        != 0 se è accaduto un errore
+        == 0 se ha un risultato logico true
+        != 0 se ha risultato logico false
+        == 0 se la valutazione aritmetica fornisce un risultato != 0
+        != 0 se la valutazione aritmetica fornisce un risultato == 0
+    - L'exit status restituito da una lista di comandi coincide con l'exit status dell'ultimo comando lanciato dalla lista.
+
+- for [arg] in [arg] ; do
+    [what to do];
+  done
+
+- for (( expr1 ; expr2 ; expr3 ));
+    [what to do];
+  done
+
+- if listA; then
+    listB;
+  fi
+  (eventualmente anche else e elif)
+
+- ; viene usato per eseguire due o più comandi in sequenza
+- || viene usato per eseguire due comandi in sequenza ma il secondo viene eseguito solo se il primo termina con exit code != 0 (fail)
+- && viene usato per eseguire due comandi in sequenza ma il secondo viene eseguito solo se il primo termina con exit code == 0 (success)
+
+- Il file descriptor fd è una astrazione che permette l'accesso ai file
+    -Ogni processo ha la sua fd table con  file attualmente aperti
+    -STDIN identificato da 0
+    -STDOUT identificato da 1
+    -STDERR identificato da 2
+    -La shell figlia eredita una copia della tabella dei file aperti del padre e anche stream predefiniti ecc...
+
+- read è i comando per leggere dallo standard input e riceve la sequenza di caratteri digitata fino a spingere invio.(restituisce 0 se non arriva a fine file >0 altrimenti)
+    - se la read incontra subito la fine del file in una variabile inserirà ""
+    - se la read ha letto dei caratteri poi è arrivata alla fine del file nella variabile trovero i caratteri ma mi restituirà comunque > 0)
+    - se al comando read vengono passati una o piu variabili allora IFS viene usato per separare la linea letta in parole e assegnare alle variabili passate le parole lette
+    - se devo leggere un file di testo che inizia con tanti spazi, se inizialmente non pongo IFS a niente avro che gli spazi bianchi non verranno neanche considerati
+    - col flag -n [num] posso leggere fino a [num] caratteri da STDIN(spazio e tab vengono considerati caratteri mentre newline no)
+    - col flag -N [num] imvece la newline viene considerata un carattere
+
+    Arrivato fino a slide 128
+

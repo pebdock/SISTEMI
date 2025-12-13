@@ -46,3 +46,223 @@ senzaspazio2.txt
 
 25_
 [marcop@SamsungGalaxyBook3360 06-12-2025]$ rm -rf *spazio*
+
+26_
+26.sh
+#!/bin/bash
+rm -rf BUTTAMI
+mkdir  BUTTAMI
+touch BUTTAMI/"*" BUTTAMI/"**"  BUTTAMI/"***" BUTTAMI/";;"
+
+ls BUTTAMI/*
+
+for i in BUTTAMI/* ; do
+        touch "$i.txt"
+done
+
+cp -R /usr/include ./BUTTAMI/
+
+27_
+#!/bin/bash
+rm -rf BUTTAMI
+mkdir  BUTTAMI
+touch BUTTAMI/"*" BUTTAMI/"**"  BUTTAMI/"***" BUTTAMI/";;"
+
+ls BUTTAMI/*
+
+for i in BUTTAMI/* ; do
+        touch "$i.txt";
+done
+
+cp -R /usr/include ./BUTTAMI/
+
+4_
+chiama_fattoriale.sh
+#!/bin/bash
+RISULTATO=`./fattoriale.sh 5`
+echo ${RISULTATO}
+
+fattoriale.sh
+#!/bin/bash
+VAR=$*
+RES=1
+while [[ ${VAR} -ne 0 ]]; do
+        (( RES=${RES}*${VAR} ))
+        (( VAR=${VAR}-1 ));
+done
+echo ${RES}
+
+5_
+chiama_fattoriale1.sh
+#!/bin/bash
+RIS=1
+source ./fattoriale.sh 5
+echo "FINALE = ${RIS}"
+
+fattoriale1.sh
+#!/bin/bash
+NUM=$1
+if (( ${NUM} > 1 )); then
+        (( RIS=${RIS}*${NUM} ))
+        (( NUM=${NUM}-1 ))
+        source ./fattoriale1.sh "${NUM}"
+fi
+
+6_
+script1.sh
+#!/bin/bash
+echo "$@"
+./script2.sh "$@"
+
+script2.sh
+#!/bin/bash
+INDEX=$#
+while (( ${INDEX} > "0" )) ; do
+        echo "arg ${INDEX} is ${!INDEX}"
+        (( INDEX=${INDEX}-1 ))
+done
+
+7_
+usando /bin/echo --help ho scoperto che col flag -e posso stampare anche i caratteri protetti da backslash
+
+8_
+usando il metodo precedente ho scoperto che il flag che non fa andare a capo è -n
+
+9_
+Ho usato il comando ls --hide=.* per nascondere tutti i file che iniziando con ., oppure semplicemente uso ls e basta
+
+10_
+#!/bin/bash
+for f in ./* ; do
+        echo "File is ${f}"
+        ls -alhd ${f}
+done
+
+La mia soluzione era differente all'inizio ma dato che quella della soluzione era equivalente e più corta ho preferito quella della soluziome
+
+11_
+#!/bin/bash
+for f in `ls -1` ; do
+        echo "File is ${f}"
+        ls -alhd ${f}
+done
+
+12_
+
+13_
+
+14_
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ touch "testo con spazio.txt"
+[marcop@SamsungGalaxyBook3360 06-12-2025]$ ./10.sh
+File is 10.sh
+-rwx------ 1 marcop marcop 75  6 dic 16.58 10.sh
+File is 26.sh
+-rwx------ 1 marcop marcop 246  6 dic 14.38 26.sh
+File is 27.sh
+-rwx------ 1 marcop marcop 251  6 dic 14.52 27.sh
+File is BUTTAMI
+drwxr-xr-x 1 marcop marcop 64  6 dic 14.52 BUTTAMI
+File is BUTTAMI.txt
+-rw-r--r-- 1 marcop marcop 0  6 dic 14.28 BUTTAMI.txt
+File is chiama_fattoriale1.sh
+-rwx------ 1 marcop marcop 66  6 dic 15.42 chiama_fattoriale1.sh
+File is chiama_fattoriale.sh
+-rwx------ 1 marcop marcop 60  6 dic 15.29 chiama_fattoriale.sh
+File is fattoriale1.sh
+-rwx------ 1 marcop marcop 129  6 dic 15.43 fattoriale1.sh
+File is fattoriale.sh
+-rwx------ 1 marcop marcop 119  6 dic 15.17 fattoriale.sh
+File is lancia2.sh
+-rwx------ 1 marcop marcop 54  6 dic 11.43 lancia2.sh
+File is lancia.sh
+-rwx------ 1 marcop marcop 80  6 dic 11.34 lancia.sh
+File is script1.sh
+-rwx------ 1 marcop marcop 40  6 dic 15.51 script1.sh
+File is script2.sh
+-rwx------ 1 marcop marcop 116  6 dic 16.02 script2.sh
+File is Soluzioni.txt
+-rw-r--r-- 1 marcop marcop 1,8K  6 dic 15.46 Soluzioni.txt
+File is stampaargs2.sh
+-rwx------ 1 marcop marcop 62  6 dic 11.44 stampaargs2.sh
+File is stampaargs.sh
+-rwx------ 1 marcop marcop 54  6 dic 11.33 stampaargs.sh
+File is testo
+ls: impossibile accedere a 'testo': File o directory non esistente
+File is con
+ls: impossibile accedere a 'con': File o directory non esistente
+File is spazio.txt
+ls: impossibile accedere a 'spazio.txt': File o directory non esistente
+
+15_
+La mia soluzione:
+#!/bin/bash
+ROWS=1
+for file in * ; do
+        if (( (${ROWS}%3) == 1 )); then
+                echo -n "(${file};";
+        elif (( (${ROWS}%3) == 2 )); then
+                echo -n "${file};";
+        else
+                echo "${file})";
+        fi
+        (( ROWS=${ROWS}+1 ))
+done
+La soluzione del pdf:
+#!/bin/bash
+NOMIFILES=`ls`
+for nome1 in ${NOMIFILES} ; do
+        for nome2 in ${NOMIFILES} ; do
+                for nome3 in ${NOMIFILES} ; do
+                        echo \(${nome1}\;${nome2}\;${nome3}\) ;
+                done
+        done
+done
+
+16_
+#!/bin/bash
+COUNT=1
+
+# Prima passata: Solo indici PARI
+for name in "$@"; do
+    if (( COUNT % 2 == 0 )); then
+        echo -n "${!COUNT} "
+    fi
+    (( COUNT++ ))
+done
+
+# Reset del contatore
+COUNT=1
+
+# Seconda passata: Solo indici DISPARI
+for name in "$@"; do
+    if (( COUNT % 2 != 0 )); then
+        echo -n "${!COUNT} "
+    fi
+    (( COUNT++ ))
+done
+
+# Un "a capo" finale per pulizia del terminale (opzionale ma consigliato)
+echo ""
+
+18_
+LA mia soluzione è:
+#!/bin/bash
+SOMMA=0
+INDEX=1
+for number in $@ ; do
+        (( QUAD=number*number ))
+        (( SOMMA=${SOMMA}+${QUAD}-${INDEX} ))
+        (( INDEX=${INDEX}+1 ));
+done
+echo ${SOMMA}
+Invece quella del file pdf è:
+  GNU nano 8.7                         sommaquadrati.sh
+#!/bin/bash
+SOMMA=0
+INDEX=1
+for number in $@ ; do
+        (( QUAD=number*number ))
+        (( SOMMA=${SOMMA}+${QUAD}-${INDEX} ))
+        (( INDEX=${INDEX}+1 ));
+done
+echo ${SOMMA}
