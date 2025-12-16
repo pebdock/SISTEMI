@@ -1,0 +1,86 @@
+Soluzioni LAB4
+1_
+#!/bin/bash
+for file in /usr/include/* ; do
+        if [[ -d ${file} && -r ${file} && ${file} -nt /usr/include/stdio.h ]]; then
+                echo ${file};
+        fi;
+done
+Con -r verifico che il file sia readable, -d che sia una directory e -nt per verificare che è più nuovo del file definito
+
+2_
+#!/bin/bash
+for let in {c..g} ; do
+        for file in /usr/include/?${let}* ; do
+                if [[ ${#file} -lt 18 || ${#file} -gt 23 ]] ; then
+                        echo ${file};
+                fi;
+        done;
+done
+
+3_
+#!/bin/bash
+for file in /usr/include/* ; do
+        if [ -d ${file} -a -r ${file} -a ${file} -nt /usr/include/stdio.h ]; then
+                echo ${file};
+        fi;
+done
+
+4_
+#!/bin/bash
+for file in /usr/include/* ; do
+        if test -d ${file} -a -r ${file} -a ${file} -nt /usr/include/stdio.h ; then
+                echo ${file};
+        fi;
+done
+
+20_
+mia soluzione usando --help:
+grep "*" /usr/include/stdio.h
+
+21_
+mia soluzione usando --help:
+grep -v "*" /usr/include/stdio.h
+
+22_
+Fatti aiutandosi con soluzione:
+  GNU nano 8.7                            leggere.sh
+#!/bin/bash
+exec {FD}</usr/include/stdio.h
+if (( $? == 0 )); then
+        while read -u ${FD} A B C D ; do
+                echo ${C};
+        done;
+        exec {FD}>&-
+fi;
+ricordarsi l'uso di exec
+
+23_
+#!/bin/bash
+exec {FD}</usr/include/stdio.h
+if(( $? == 0 )); then
+        NUM=0
+        while read -u ${FD} -N 1 -r A; do
+                (( NUM=NUM+1 ))
+        done;
+        exec {FD}>&-
+        echo ${NUM}
+fi;
+ricordarsi che -u serve per specificare il file della read , -N per dire quanti char leggere e -r per indicare di non interpretare i backslash words \n \t ecc...
+
+24_
+contare char di un file
+
+25_
+[marcop@SamsungGalaxyBook3360 13-12-2025-1]$ echo ciao 1>&2 | grep -v ciao
+ciao
+Visto dalle soluzioni, nonostante il grep vedo ciao comunque
+
+26_
+#!/bin/bash
+while read $* A B C D; do
+        echo "${D} ${C}"
+done;
+
+diverso rispetto alla soluzione dove usa un ciclo while (non so il motivo)
+eseguito con ./star.sh < asterischi.txt

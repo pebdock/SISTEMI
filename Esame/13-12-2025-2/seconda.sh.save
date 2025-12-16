@@ -1,0 +1,8 @@
+#!/bin/bash
+exec {FD}< "./$1"
+OUT=""
+while read -r -u ${FD} A B C; do
+        
+done
+exec {FD}>&-
+echo ${OUT}

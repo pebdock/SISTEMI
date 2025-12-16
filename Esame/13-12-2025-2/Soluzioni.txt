@@ -1,0 +1,229 @@
+28_
+Ho capito come usare cut usando cut --help
+    cut --characters=3-5,10-15 28.txt
+    nella soluzione invece ho:
+    cut -b 2-5,10-15 28.txt
+29_
+La mia soluzione:
+cut --characters=3-5,10-15 28.txt | sed 's/ //g' | sed 's/\t//g' | sed 's/*//g'
+Soluzione pdf:
+cut –b 3-5,10-15 nomefile.txt | sed 's/*//g' | sed 's/ //g' | sed 's/\t//g'
+
+30_
+La mia soluzione:
+cut --characters=3-5,10-15 28.txt | sed 's/ //g' | sed 's/\t//g' | sed 's/*//g' | wc -c
+Soluzione pdf:
+cut –b 3-5,10-15 nomefile.txt | sed 's/*//g' | sed 's/ //g' | sed 's/\t//g' | wc –c
+
+36_
+Nella mia soluzione ho usato un'altra logica ma funziona comunque:
+- unasiunano.sh
+#!/bin/bash
+LINE=0
+while read RIGA ; do
+        if (( ${LINE}%2==0 )); then
+                echo "${RIGA}"
+        fi
+        (( LINE=${LINE}+1 ))
+done
+Invece nella soluzione del PDF ho:
+#!/bin/bash
+LINE=0
+while read RIGA ; do
+        if (( ${LINE}%2==0 )); then
+                echo "${RIGA}"
+        fi
+        (( LINE=${LINE}+1 ))
+done
+
+36_
+La mia soluzione:
+#!/bin/bash
+COUNT=0
+SECOND=`date +%s`
+RANDOM=$(( ${SECOND} % 10 )) //RICORDARSI DI QUESTO
+while (( ${RANDOM} % 10 != 2 )) ; do
+        (( COUNT = ${COUNT} + 1 ))
+done
+echo ${COUNT}
+
+Soluzione del PDF:
+#!/bin/bash
+# inizializzo la variabile RANDOM con il numero di secondi
+# trascorsi dal 1970-01-01 00:00:00 UTC modulo 32768
+RANDOM=$(( `date +%s` % 32768 ))
+NUM=0
+while (( ${RANDOM}%10 != 2 )) ; do
+(( NUM=${NUM}+1 ))
+done
+echo "NUM=${NUM}"
+
+37_
+La mia soluzione:
+elenco.sh
+
+#!/bin/bash
+LungNomiDirectory=0
+NoDir=0
+for file in `ls -A`; do
+        if [[ -d ${file} ]] ; then
+                (( LungNomiDirectory=${LungNomiDirectory}+${#file} ))
+        else
+                (( NoDir=${NoDir}+1 ))
+        fi
+done
+echo "Lunghezza nomi directory è ${LungNomiDirectory} mentre ho ${NoDir} non directory"
+
+38_
+Io nella mia soluzione ho utilizzato exec in questo modo:
+#!/bin/bash
+exec {FD}< "./$1"
+OUT=""
+if (( $? == 0 )); then
+        while read -r -u ${FD} A B C; do
+                OUT="${OUT}${B} "
+        done
+fi
+exec {FD}<&-
+echo ${OUT}
+Invece nella soluzione del PDF
+#!/bin/bash
+if (( $# != 1 )) ; then echo "serve nomefile" ; exit 1 ; fi
+if [[ ! -r $1 ]] ; then echo "il file $1 non esiste"; exit 2; fi
+OUT=""
+while read PRIMA SECONDA ALTRO ; do
+if [[ -n ${SECONDA} ]] ; then
+OUT=${OUT}${SECONDA}
+fi
+done < $1
+echo "OUT=${OUT}"
+
+39_
+Io ho fatto cosi:
+#!/bin/bash
+ACount=0
+while read A; do
+        if [[ -n `grep "a" <<< ${A}` ]]; then
+                (( ACount=${ACount}+`wc -c <<< ${A}` ))
+        fi
+done
+echo "I caratteri sono ${ACount}"
+mentre nel pdf ho:
+#!/bin/bash
+grep A | wc -c
+
+41_
+La mia soluzione è:
+#!/bin/bash
+STRINGA=$@
+STRINGAINVERTITA=""
+I=${#STRINGA}
+while [[ ${I} -ge 0 ]]; do
+        STRINGAINVERTITA=${STRINGAINVERTITA}${STRINGA:${I}:1}
+        (( I=${I}-1 ))
+done
+echo ${STRINGAINVERTITA}
+
+mentre nel pdf:
+#!/bin/bash
+# REVERSE=""
+echo $1 |
+ while (( 1 )) ; do
+read -n 1 CAR ;
+if (( $? == 0 )) ; then
+REVERSE=${CAR}${REVERSE}
+else
+echo stringa rovesciata ${REVERSE}
+break
+fi
+done
+echo GUARDARE SE STAMPA IL CONTENUTO DI STA STRINGA ${REVERSE}
+
+dopo un confronto con chatgpt è meglio scrivere:
+  GNU nano 8.7                        reversebizzarro.sh
+#!/bin/bash
+STRINGA="$@"
+STRINGAINVERTITA=""
+(( I=${#STRINGA}-1 ))
+while [[ ${I} -ge 0 ]]; do
+        STRINGAINVERTITA=${STRINGAINVERTITA}${STRINGA:${I}:1}
+        (( I=${I}-1 ))
+done
+echo ${STRINGAINVERTITA}
+
+41++
+Io ho fatto così:
+ls /usr/include/ | grep "*" | wc -l
+mentre nel pdf ho:
+grep -d skip '*' /usr/include/*
+è corretta la soluzione del prof dove grep trova le righe nei file non directory (grep -d skip).
+
+42_
+mi sono corretto senza usare exec e usando break nei punti corretti
+#!/bin/bash
+while read PID DESCV ; do
+        while read DID PID2 ; do
+                while read NAME SURNAME DID2 DESCR ; do
+                        if [[ ${PID}==${PID2} && ${DID}==${DID2} ]]; then
+                                printf "Nome e cognome: %s %s\tDescrizione reato: %s\tDescrizione verdetto: %s\n" "$NAME" "$SURNAME" "$DESCR" "$DESCV"
+                                break
+                        fi
+                done < ./denunce.txt
+        break
+        done < ./processi.txt
+done < ./verdetti.txt
+
+43_
+ho usato wget [url]
+
+44_
+mancavano gli spazi di [[ condizione ]]
+#!/bin/bash
+
+if [[ -e /usr/include/stdio.h ]] ; then
+        echo esiste
+fi
+
+45_
+head -n 5 /usr/include/stdio.h | tail -n 3
+
+46_
+tail -n 4 /usr/include/stdio.h | cut -b -3
+
+47_
+read RIGA1 ; read RIGA2 ; echo ${RIGA2} ; echo ${RIGA1}
+
+48_
+read RIGA1 &> /dev/null
+questo perchè metto l'output in una sorta di black hole ovvero in /dev/null. Serve per scartare output
+
+49_
+while read riga; do echo ${#riga} ;done
+
+50_
+(head -n 5 /usr/include/stdio.h | tail -n 3 ; tail -4 /usr/include/stdio.h | cut -b -3) | (read riga1 ; read riga2 ; echo ${riga1} ; echo ${riga2} ; read riga &> /dev/null ; while read riga; do echo ${#riga} ; done)
+
+51_
+#!/bin/bash
+SEC=$1
+while [[ ${SEC} -gt 0 ]] ; do
+        echo ".$BASHPID"
+        sleep 1;
+        (( SEC=${SEC}-1 ))
+done
+
+52_
+ eseguire puntini.sh
+./puntini.sh
+ 30
+CTRL Z
+bg
+fg
+CTRL Z
+bg
+kill -9 $!
+
+53_
+.eseguire puntini.sh
+./puntini.sh 30 &
+kill -SIGKILL $!

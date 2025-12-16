@@ -1,161 +1,520 @@
-- strace [nomecomando] - posso vedere tutte le system call che quel comando esegue fino alla sua terminazione
+──────────────────────────────────────────────────────────────────────────────
+INDICE (nell’ordine del file Comandi.txt)
+1) strace
+2) pwd
+3) Shell expansions (history / brace / tilde / parameter / arithmetic / command subst / quoting / word splitting / pathname / quote removal)
+4) PATH
+5) Utenti, gruppi, permessi + chown/chgrp/chmod
+6) ls
+7) Shebang
+8) Variabili (locali/ambiente) + export/set/unset
+9) source / man
+10) Tipi di shell (login/non-login, interattiva/non)
+11) Separatore ;  + autocompletamento TAB
+12) Espressioni condizionali: [[ ]] vs [ ]/test
+13) find
+14) Riferimento indiretto: ${!var}
+15) Exit status
+16) Cicli/if + operatori ; || &&
+17) File descriptor (FD)
+18) read
+19) exec (apertura/chiusura FD)
+20) Redirezioni e pipe
+21) wc
+22) Processi, job control, segnali, kill/killall/nohup/disown
+23) Coreutils (sed, tail, head, tee, cut, grep)
+24) Parameter expansion (riassunto operativo)
+25) Scaricamento con wget
 
-- pwd [nomecomando] indica il percorso completo in cui l'utente si trova, da / fino alla directory
+──────────────────────────────────────────────────────────────────────────────
+1) strace [comando]
+• A cosa serve: visualizzare le system call invocate da un programma fino alla terminazione.
+• Uso tipico: debug (“quali file tenta di aprire?”, “dove si blocca?”).
+Esempi:
+  strace ls
+  strace -o trace.txt nome_programma arg1 arg2
 
-- Le principali expansions che possono essere effettuate sono:
-    - history expansion !123
-        - history per vedere la cronologia dei comandi lanciati
-            - ![numcom] per eseguire il comando associato a quel numero
-            - !strunga per eseguire il comando più recentemente lanciato con quella stringa
+──────────────────────────────────────────────────────────────────────────────
+2) pwd
+• Stampa il percorso assoluto della directory corrente (da / alla directory attuale).
 
-    - brace expansion a{damn,czk,bubu}e (echo a{bu,ba,be} stamperà abu aba abe)
-        - non possono essere presenti tab o white spaces se non protetti da \
-        - possibile annidarle dentro ad percorsi e inserirvici variabili
-        - possibile scrittura anche con:
-            -{1..6} e {b..k}
+──────────────────────────────────────────────────────────────────────────────
+3) Shell expansions (espansioni della shell)
 
-    - tilde expansion ~/nomedir (abbrevia l'attuale home directory) o ~username (indica la home directory di username)
+Ordine (utile per capire “cosa succede prima”):
+  1) history expansion
+  2) brace expansion
+  3) tilde expansion
+  4) parameter/variable expansion
+  5) arithmetic expansion
+  6) command substitution
+  7) word splitting (se non quotato)
+  8) pathname expansion (globbing)
+  9) quote removal
 
-    - parameter and variable expansion
-        - $1 indica il primo argomento del comando
-        - $# il numero di argomenti passati allo script
-        - $* tutti gli argomenti passati a riga di comando separati da spazi
-        - $@ uguale a $* ma se quotato fli argomenti vengono quotati separatamente
-        - $? indica il valore dell'exit status dell'ultimo comando
-        - $!
-        - ${var} per poter distinguere il nome di una variabile
-        - ${#var} numero di caratteri dell contenuto della variabile var
+3.1) History expansion
+• history                → mostra cronologia numerata
+• !N                     → esegue il comando numero N
+• !stringa               → esegue l’ultimo comando che inizia con “stringa”
+Nota: spesso è disabilitata di default in contesti non interattivi.
 
-    - arithmetic expansion $(( ))
-        - (()) racchiude un intera riga di comando semplice
-        - $(()) se bisogna racchiudere solo una parte di una riga di comando
+3.2) Brace expansion
+• Genera stringhe “a partire da uno schema”:
+  echo a{bu,ba,be}   → abu aba abe
+• Niente spazi non protetti dentro { }.
+• Sequenze:
+  echo {1..6}        → 1 2 3 4 5 6
+  echo {b..k}        → b c d e f g h i j k
+• Annidamento:
+  echo a{b,c{1,2}}   → ab ac1 ac2
 
-    - command substitution ` ` $( ) sostituiscono a runtime la riga di comando di un programma con l'stdout del programma scritto all'interno
+3.3) Tilde expansion
+• ~/dir          → home dell’utente corrente + /dir
+• ~username      → home di “username”
 
-    - quoting " " impedisce la sostituzione di wildcards e l'uso di ; come separatore di comandi ma permette di sostituire variabili con il loro comando e permette esecuzione di comandi
-    - quoting ' ' impedisce di usare ; come separatore e no wildcards, non sostituisce variabili col loro contenuto e neanche l'esecuzione di comandi
-    - quoting $' ' uguale a ' ' ma sostituisce le backlash escaped characters (\a alert \e \f feed \r carriage return \v vertical tab \' single quote \nnn carattere con valore ottale nnn \xHH carattere con valore hex HH \cx controlx character \b backspace \E escape \n newline \t tab orizzontale \\ backslash \" double quote)
+3.4) Parameter and variable expansion
+• $1, $2, ...     → argomenti posizionali dello script/comando
+• $#              → numero argomenti
+• $*              → tutti gli argomenti “in una sola stringa” (attenzione agli spazi)
+• $@              → tutti gli argomenti; se quotato (“$@”) preserva ogni argomento separatamente
+• $?              → exit status dell’ultimo comando
+• $!              → PID dell’ultimo processo lanciato in background (con &)
+• ${var}          → forma esplicita (utile per evitare ambiguità: ${var}X)
+• ${#var}         → lunghezza (in caratteri/byte a seconda del contesto/locale)
 
-    - word splitting
-        - la variabile IFS contiene i caratteri che fungono da separatori delle parole negli elenchi di nomi.
+3.5) Arithmetic expansion
+• $(( ... ))      → espande un’espressione aritmetica
+• (( ... ))       → valuta un’espressione “come comando” (serve spesso per if/while)
+Esempi:
+  echo $((3+4))
+  if (( i < 10 )); then echo ok; fi
 
-    - pathname expansion
-        - * sostituito da una qualunque sequenza di caratteri
-        - ? sostituito esattamente da un singolo carattere
-        - [elenco] sostituito da un singolo carattere tra quelli specificati
-            - [abk] un solo carattere tra a,b ek
-            - [1-6] un solo numero tra 1 e 6
-            - [c-f] un solo carattere tra c e f
-            - [[:digit:]] solo una cifra
-            - [[:upper:]] solo un carattere maiuscolo
-            - [[:lower]] solo un carattere minuscolo
+3.6) Command substitution
+• `comando` oppure $(comando)  → sostituisce con lo stdout del comando
+• Preferisci $(...) perché annidabile:
+  echo "oggi: $(date)"
 
-    - quote removal
+3.7) Quoting
+• "..."  (double quotes)
+  - impedisce globbing e separazione su spazi (word splitting) sul contenuto espanso
+  - MA permette espansioni ($VAR, $(...), ecc.)
+• '...'  (single quotes)
+  - tutto letterale: niente espansioni
+• $'...' (ANSI-C quoting)
+  - supporta escape tipo \n, \t, \xHH, ecc.
+Esempio:
+  echo $'riga1\nriga2'
 
-- PATH è una variabile d'ambiente che contiene le directory in cui la bash cerca i file che specifico
+3.8) Word splitting
+• IFS (Internal Field Separator) definisce i separatori usati nello split dopo espansioni non quotate.
+• Default: spazio, tab, newline.
+Tip: se devi preservare spazi iniziali in una read, spesso si usa:
+  IFS= read -r linea
 
-- Ogni utente ha un username con userID e un gruppo con groupname e groupID, un utente appartiene a un gruppo primario e può appartenere ad altri gruppi secondari
-    - ciascun file e directory appartiene ad un utente
-    - ciascun file e directory è associata ad un gruppo
+3.9) Pathname expansion (globbing)
+• *        → qualunque sequenza (anche vuota)
+• ?        → esattamente un carattere
+• [abc]    → un carattere tra a/b/c
+• [1-6]    → un carattere nell’intervallo
+• [[:digit:]] [[:upper:]] [[:lower:]] … → classi POSIX
 
-- chown per cambiare il proprietario di un file
-    chown nuovoproprietario nomefile
+3.10) Quote removal
+• Ultima fase: le virgolette usate per proteggere vengono rimosse.
 
-- chgrp per cambiare gruppo
+──────────────────────────────────────────────────────────────────────────────
+4) PATH
+• Variabile d’ambiente che contiene le directory in cui bash cerca gli eseguibili.
+• È una lista separata da “:” (es. /usr/bin:/bin:...).
 
-- chmod (r vale 4, w vale 2 e x vale 1) per cambiare permessi di accesso a un file.
-    chmod [user-value between 0-7] [group-value between 0-7] [others-value between 0-7] nomefile
-    - setuid è rappresentato con s nelle user permission e in esecuzione il processo associato all'esecuzione ottiene anche i permessi dell'owner, si può indicare in chmod mettendo un 4 davanti ai 3 valori percedentemente citati (Esiste anche setgid con 2 e sticky bit con 1)
+──────────────────────────────────────────────────────────────────────────────
+5) Utenti, gruppi, permessi + chown/chgrp/chmod
 
-- ls per vedere i file in una determinata directory, posso aggiungere anche delle flag ( visualizzabili in dettaglio con ls --help)
+Concetti base
+• Ogni utente ha: username + userID (UID)
+• Ogni gruppo ha: groupname + groupID (GID)
+• Un utente ha un gruppo primario e può appartenere a gruppi secondari.
+• Ogni file/directory ha un proprietario (UID) e un gruppo (GID).
 
-- #!bin/bash va indicato all'inizio di uno script per capire che interprete dei comandi usare
+5.1) chown — cambia proprietario (e opzionalmente gruppo)
+  chown nuovo_utente file
+  chown utente:gruppo file
 
-- Le variabili possono essere:
-    - locali
-    - d'ambiente
+5.2) chgrp — cambia gruppo
+  chgrp nuovo_gruppo file
 
-- export per rendere d'ambiente una var locale
+5.3) chmod — cambia permessi
+• r=4, w=2, x=1. Forma ottale: chmod 755 file
+  - user: 7 = rwx
+  - group: 5 = r-x
+  - others: 5 = r-x
+• Bit speciali:
+  - setuid: 4xxx (permesso “s” sul campo user)
+  - setgid: 2xxx (permesso “s” sul campo group)
+  - sticky: 1xxx (permesso “t” sul campo others, tipico in /tmp)
 
-- set per vedere tutte le variabili e funzioni bash implementate:
-    - con il flag +o e -o history, per disabilitare o riattivare la memorizzazione di history
-    - con -a e +a per avere variabili fin dall'inizio d'ambiente o fare in modo che rimangano locali
-    - se ho eseguito set -a potro rendere le variabili da ambiente a locali con export -n
+──────────────────────────────────────────────────────────────────────────────
+6) ls
+• Lista file in una directory. Opzioni utili (vedi ls --help):
+  -l (dettagli), -a (nascosti), -h (dimensioni leggibili), ecc.
 
-- unset può essere usato per eliminare delle variabili
+──────────────────────────────────────────────────────────────────────────────
+7) Shebang
+• All’inizio di uno script:
+  #!/bin/bash
+→ indica l’interprete da usare.
 
-- source [script] o . [script] per eseguire uno script senza creare una subshell
+──────────────────────────────────────────────────────────────────────────────
+8) Variabili: locali vs d’ambiente + export/set/unset
 
-- man [nomecomando] per vedere tutto quello che posso fare con quel comando
+• Variabili locali: visibili solo nella shell corrente.
+• Variabili d’ambiente: ereditate dai processi figli.
 
-- Shell non interattiva lanciata con -c [percorsoscript]
-    Non analizza alcun file prima di avviarsi
-- Shell interattiva non di login lanciata senza argomenti (non -c -l e --login)
-    Analizza solo .bashrc
-- Shell interattiva di login lanciata con -l e --login
-    Analizza /etc/profile
-    Analizza il primo file che trova tra .bash_profile .bash_login e .profile
-    Analizza .bashrc
+Comandi:
+• export VAR=...        → rende VAR d’ambiente
+• export -n VAR         → rimuove “export” (torna locale)
+• set                   → mostra variabili e funzioni bash
+  - set -o history / set +o history → abilita/disabilita history
+  - set -a / set +a                → auto-export delle variabili create dopo
+• unset VAR             → elimina la variabile
 
-- ; può essere usato per eseguire più comandi allo stesso momento
+──────────────────────────────────────────────────────────────────────────────
+9) source / man
+• source script.sh   oppure   . script.sh
+  → esegue lo script nella shell corrente (senza subshell)
+• man comando
+  → manuale del comando (opzioni, esempi, descrizione)
 
-- TAB attiva la funzionalità di autocompletamento
+──────────────────────────────────────────────────────────────────────────────
+10) Tipi di shell (avvio)
 
-- Posso avere anche vari tipi di espressioni condizionali:
-   - si scrivono tra [[ ]] (output 0 vero, != 0 falso)
-   - posso usare ! || && e parentesi tonde per ordine
-   - per confronti aritmetici uso -eq -ne -le -lt -ge -gt
-   - per confronti lessicografici uso -z lunghezza della stringa 0 -n lunghezza della stringa !=0 == stringhe uguali = != stringhe diverse < <= >= > (usa ordine lessicografico)
-   - per condiziomi su file uso -d file esiste e directory -e file esiste -f file esiste ed è file -h file esiste ed è link simbolico -r file readable -s file esiste e dimensione != 0 -t vero se fd è aperto -w file esiste e si può scrivere -x file esiste ed è eseguibile -O file esiste ed appartiene all'effective user id -G file esiste ed appartiene all'effective group id -L file esiste ed è un link simbolico)
-   - per confrontare due file in base alla loro data di creazione (-nt o -ot)
+• Shell non interattiva lanciata con -c [stringa/script]
+  - in queste note: “non analizza alcun file prima di avviarsi”
+• Shell interattiva non di login (tipico terminale grafico)
+  - legge ~/.bashrc
+• Shell interattiva di login (ssh o bash -l/--login)
+  - legge /etc/profile
+  - poi il primo tra ~/.bash_profile, ~/.bash_login, ~/.profile
+  - poi (spesso) ~/.bashrc
 
-- find può essere usato per cercare dei file (find --help per più info)
+──────────────────────────────────────────────────────────────────────────────
+11) ;  e autocompletamento TAB
+• ; separa comandi in sequenza:
+  comando1 ; comando2
+• TAB: autocompletamento.
 
-- con ${!nomevar} si può effettuare un riferimento indiretto a una variabile
-    varA=bubu
-    varB=varA
-    echo ${!varB} stampa a video bubu
+──────────────────────────────────────────────────────────────────────────────
+12) Espressioni condizionali: [[ ]] vs [ ] / test
 
-- exit status di un programma è 0 se va tutto bene o diverso da 0 se errore (valore da 0 a 255)
-    - Le espressioni matematiche $(()) oppure (()) hanno un exit status:
-        != 0 se è accaduto un errore
-        == 0 se ha un risultato logico true
-        != 0 se ha risultato logico false
-        == 0 se la valutazione aritmetica fornisce un risultato != 0
-        != 0 se la valutazione aritmetica fornisce un risultato == 0
-    - L'exit status restituito da una lista di comandi coincide con l'exit status dell'ultimo comando lanciato dalla lista.
+Dove si usano:
+  if CONDIZIONE; then ...; fi
 
-- for [arg] in [arg] ; do
-    [what to do];
-  done
+12.1) [[ ... ]] (Bash)
+• Più comoda per comporre condizioni:
+  - supporta &&, ||, ! e parentesi ( )
+  - consente pattern matching (es. [[ $x == a* ]])
 
-- for (( expr1 ; expr2 ; expr3 ));
-    [what to do];
-  done
+12.2) [ ... ] e test (stile POSIX)
+• Operatori logici “storici”:
+  -a (AND), -o (OR)
+• Limitazioni tipiche:
+  - parentesi per raggruppare vanno “escape-ate” (\(  \))
+  - spesso serve \ per andare a capo
 
-- if listA; then
-    listB;
+Confronti (promemoria)
+• Aritmetici: -eq -ne -lt -le -gt -ge
+• Stringhe:
+  -z (lunghezza 0), -n (lunghezza !=0), ==, !=
+  < > (ordine lessicografico: in [ ] vanno spesso escape-ati)
+• File:
+  -d (directory), -e (esiste), -f (file regolare), -h/-L (symlink),
+  -r (readable), -w (writable), -x (executable), -s (size > 0),
+  -t (vero se FD è aperto su terminale),
+  -O (owner = effective uid), -G (group = effective gid),
+  -nt (più recente), -ot (più vecchio)
+
+──────────────────────────────────────────────────────────────────────────────
+13) find
+• Ricerca file/directory. Per opzioni ed esempi: find --help (o man find).
+
+──────────────────────────────────────────────────────────────────────────────
+14) Riferimento indiretto: ${!nomevar}
+Esempio:
+  varA=bubu
+  varB=varA
+  echo "${!varB}"   # stampa: bubu
+
+──────────────────────────────────────────────────────────────────────────────
+15) Exit status
+• 0 = successo, diverso da 0 = errore (0..255).
+• In una “lista di comandi”, l’exit status è quello dell’ultimo comando.
+
+Nota sulle espressioni aritmetiche:
+• (( ... )) ritorna exit status 0 se l’espressione è “vera” (risultato != 0),
+  e 1 se è “falsa” (risultato == 0).
+
+──────────────────────────────────────────────────────────────────────────────
+16) Cicli / if + operatori ; || &&
+
+Cicli:
+  for var in lista; do ...; done
+  for (( expr1; expr2; expr3 )); do ...; done
+
+If:
+  if listA; then
+    listB
+  elif listC; then
+    listD
+  else
+    listE
   fi
-  (eventualmente anche else e elif)
 
-- ; viene usato per eseguire due o più comandi in sequenza
-- || viene usato per eseguire due comandi in sequenza ma il secondo viene eseguito solo se il primo termina con exit code != 0 (fail)
-- && viene usato per eseguire due comandi in sequenza ma il secondo viene eseguito solo se il primo termina con exit code == 0 (success)
+Operatori di controllo:
+• ;   → esegue sempre il comando successivo
+• cmd1 && cmd2 → esegue cmd2 solo se cmd1 ha exit status 0
+• cmd1 || cmd2 → esegue cmd2 solo se cmd1 ha exit status != 0
 
-- Il file descriptor fd è una astrazione che permette l'accesso ai file
-    -Ogni processo ha la sua fd table con  file attualmente aperti
-    -STDIN identificato da 0
-    -STDOUT identificato da 1
-    -STDERR identificato da 2
-    -La shell figlia eredita una copia della tabella dei file aperti del padre e anche stream predefiniti ecc...
+──────────────────────────────────────────────────────────────────────────────
+17) File Descriptor (FD)
+• Astrazione per l’accesso a file/stream.
+• Ogni processo ha una “tabella dei FD” dei file aperti.
+Standard:
+  0 = STDIN
+  1 = STDOUT
+  2 = STDERR
+Ereditarietà:
+• Un processo figlio eredita una copia dei FD del padre.
 
-- read è i comando per leggere dallo standard input e riceve la sequenza di caratteri digitata fino a spingere invio.(restituisce 0 se non arriva a fine file >0 altrimenti)
-    - se la read incontra subito la fine del file in una variabile inserirà ""
-    - se la read ha letto dei caratteri poi è arrivata alla fine del file nella variabile trovero i caratteri ma mi restituirà comunque > 0)
-    - se al comando read vengono passati una o piu variabili allora IFS viene usato per separare la linea letta in parole e assegnare alle variabili passate le parole lette
-    - se devo leggere un file di testo che inizia con tanti spazi, se inizialmente non pongo IFS a niente avro che gli spazi bianchi non verranno neanche considerati
-    - col flag -n [num] posso leggere fino a [num] caratteri da STDIN(spazio e tab vengono considerati caratteri mentre newline no)
-    - col flag -N [num] imvece la newline viene considerata un carattere
+Nota pratica:
+• In /proc/$$/fd (Linux) trovi i “collegamenti” ai file aperti dal processo della shell.
 
-    Arrivato fino a slide 128
+──────────────────────────────────────────────────────────────────────────────
+18) read (lettura da STDIN o da un FD)
+• Legge una riga (fino a newline) da input e la assegna a una o più variabili.
+• Se passi più variabili, read usa IFS per separare la riga in “campi”.
 
+Comportamento a EOF (fine file):
+• Se EOF arriva subito: variabile = "" e read ritorna “fallimento” (exit status != 0).
+• Se legge qualche carattere e poi EOF senza newline:
+  - la variabile contiene i caratteri letti
+  - ma read ritorna comunque exit status != 0
+
+Opzioni utili:
+• -r        → non interpreta backslash (consigliato quasi sempre)
+• -n N      → legge fino a N caratteri (newline non conta come carattere terminatore)
+• -N N      → legge esattamente N caratteri (newline conta come carattere)
+• -u FD     → legge da uno specifico file descriptor (FD già aperto)
+• -t SEC    → timeout (se supportato/previsto dall’ambiente)
+
+Esempi:
+  IFS= read -r linea
+  read A B C <<< "alfa beta gamma"
+  while IFS= read -r riga; do echo "$riga"; done < file.txt
+
+──────────────────────────────────────────────────────────────────────────────
+19) exec: aprire/chiudere file descriptor dalla shell
+• L’utente può scegliere il FD oppure farlo assegnare automaticamente.
+
+Aprire (shell corrente):
+• sola lettura:
+  exec N< file
+  exec {FD}< file
+• sola scrittura:
+  exec N> file
+  exec {FD}> file
+• append:
+  exec N>> file
+  exec {FD}>> file
+• lettura+scrittura:
+  exec N<> file
+  exec {FD}<> file
+
+Chiudere:
+  exec N>&-
+  exec {FD}>&-
+
+Nota:
+• Le modifiche fatte con exec “persistono” nella shell corrente finché non chiudi/ripristini.
+
+──────────────────────────────────────────────────────────────────────────────
+20) Redirezioni e pipe (I/O)
+
+Metacaratteri principali (promemoria):
+  >  >>  <     redirezione I/O
+  |            pipe
+  <<           here document
+  <<<          here string
+  &            background
+
+20.1) Redirezioni base
+• > file        → STDOUT su file (sovrascrive)
+• >> file       → STDOUT su file (append)
+• < file        → file su STDIN
+• 2> file       → STDERR su file
+• &> file       → STDOUT + STDERR su file (sovrascrive)
+• 2>&1          → manda STDERR dove punta attualmente STDOUT
+• N> file       → redirige il FD N su file
+• <N file       → usa “file” come input del FD N (forma meno comune)
+
+20.2) Pipe
+• cmd1 | cmd2   → collega STDOUT di cmd1 a STDIN di cmd2
+• |&            → collega STDOUT+STDERR di cmd1 a STDIN di cmd2 (scorciatoia utile)
+
+20.3) Here string e here document
+Here string (una stringa come input):
+  read A B C <<< "alfa beta gamma"
+
+Here document (blocco multilinea):
+  while read A B C; do echo "$B"; done <<FINE
+  uno due tre quattro
+  alfa beta gamma
+  gatto cane
+  FINE
+
+20.4) Redirezione nei processi figli (idea)
+• Tra fork ed exec, il figlio può “duplicare” una risorsa (pipe/file) su un FD standard
+  (es. 1), sovrascrivendo il collegamento ereditato (es. terminale), prima di eseguire
+  il nuovo programma.
+
+──────────────────────────────────────────────────────────────────────────────
+21) wc
+• Conta righe/parole/byte/caratteri, su STDIN o file.
+• Esempi:
+  wc -l file.txt     # linee
+  wc -w file.txt     # parole
+  wc -c file.txt     # byte
+(vedi wc --help)
+
+──────────────────────────────────────────────────────────────────────────────
+22) Processi, job control, segnali, kill/killall/nohup/disown
+
+22.1) PID e variabili
+• $$        → PID della shell corrente
+• Attenzione alle subshell: in bash, dentro ( ... ) spesso $$ resta quello della shell “padre”;
+  per il PID reale della subshell usa $BASHPID.
+
+22.2) Background/foreground e job control
+• Foreground: il processo “controlla” il terminale e blocca la shell fino a fine.
+• Background: la shell continua a leggere comandi; il job usa i FD ereditati.
+
+Comandi/azioni:
+• comando &     → lancia in background
+  - $! contiene il PID dell’ultimo processo lanciato con &
+• Ctrl+Z        → sospende (SIGTSTP)
+• Ctrl+C        → interrompe (SIGINT)
+• bg            → riprende in background un processo sospeso
+• fg %n         → porta in foreground il job n (indice mostrato da jobs)
+• jobs          → lista numerata dei job (figli di quella shell)
+• kill PID      → invia un segnale (default SIGTERM)
+• kill %n       → invia al job n
+
+Nota su $!:
+• Se lanci un processo con “comando &”, $! viene aggiornato.
+• Se metti in background con “bg” un processo già esistente (da Ctrl+Z), $! non viene aggiornato.
+
+22.3) SIGHUP, disown e nohup
+• Quando una shell interattiva termina, invia SIGHUP ai suoi job (background o sospesi).
+• disown “sgancia” il job dalla shell, evitando il SIGHUP alla chiusura della shell.
+  - disown        → sgancia l’ultimo job in background
+  - disown -r     → sgancia tutti i job running
+  - disown -a     → sgancia running + sospesi
+  - disown %jobid → sgancia un job specifico
+• nohup comando &  → equivalente pratico di:
+    comando &
+    disown
+
+22.4) Segnali e kill
+• Un segnale è un’interruzione software asincrona inviata a un processo.
+
+Esempi (pid = 7777):
+• SIGTERM (default, “gentile”, intercettabile):
+  kill 7777
+  kill -15 7777
+  kill -SIGTERM 7777
+• SIGKILL (forzato, non intercettabile):
+  kill -9 7777
+  kill -SIGKILL 7777
+• Altri segnali utili:
+  kill -SIGTSTP pid   # come Ctrl+Z
+  kill -SIGCONT pid   # riprende (usato da fg/bg)
+  kill -SIGINT pid    # come Ctrl+C
+• Elenco segnali:
+  kill -l
+
+Nota importante:
+• Un processo bloccato in I/O (rete) o in sleep può gestire il segnale “in ritardo”
+  (solo al termine dell’attesa).
+
+22.5) killall
+• Termina (o invia segnali a) processi con un dato nome.
+• Può usare anche selezione tramite espressione regolare (opzione -r).
+Esempio (regex sui nomi dei processi):
+  killall -r 'attendi[[:upper:]]*'
+Nota: gli apici singoli impediscono alla bash di interpretare i metacaratteri.
+
+──────────────────────────────────────────────────────────────────────────────
+23) Coreutils (promemoria operativo)
+
+23.1) sed (stream editor)
+Esempi tipici:
+• Sostituzione (prima occorrenza per riga):
+  sed 's/togli/metti/' file
+• Sostituzione globale:
+  sed 's/togli/metti/g' file
+• Rimuovere 1° carattere di ogni riga:
+  sed 's/^.//' file
+• Rimuovere ultimo carattere di ogni riga:
+  sed 's/.$//' file
+• Rimuovere primi 4 caratteri a inizio riga (regex estese spesso con -E / -r):
+  sed -E 's/^.{4}//' file
+• Rimuovere ogni occorrenza di qualcosa aggiungendo g
+  sed 's/qualcosa//g' file
+
+23.2) tail / head (guardare con help altre opzioni)
+• head -n 20 file      → prime 20 righe
+• tail -n 20 file      → ultime 20 righe
+• tail -f file         → segue append (log)
+
+23.3) tee (guardare con help altre opzioni)
+• Duplica lo stream: stampa a video e scrive su file:
+  comando | tee output.txt
+
+23.4) cut
+• Estrae colonne/campi:
+  cut -d ':' -f 1 /etc/passwd
+  cut -c 5-6 oppire -5 ecc... (ALtre opzioni con help)
+
+23.5) grep
+• Cerca pattern:
+  grep "parola" file
+(vedi grep --help)
+
+──────────────────────────────────────────────────────────────────────────────
+24) Parameter expansion — riassunto operativo (stringhe)
+
+Rimozione pattern:
+• ${VAR%%pattern}   rimuove il più lungo suffisso che matcha pattern
+• ${VAR%pattern}    rimuove il più corto suffisso che matcha pattern
+• ${VAR##pattern}   rimuove il più lungo prefisso che matcha pattern
+• ${VAR#pattern}    rimuove il più corto prefisso che matcha pattern
+
+Sostituzione:
+• ${VAR/pat/str}    sostituisce la prima occorrenza
+• ${VAR//pat/str}   sostituisce tutte le occorrenze
+• ${VAR#/pat/str}   sostituisce solo se matcha all’inizio
+• ${VAR/%pat/str}   sostituisce solo se matcha alla fine
+
+Sottostringhe e lunghezza:
+• ${#VAR}                 lunghezza
+• ${VAR:offset}           sottostringa da offset
+• ${VAR:offset:length}    sottostringa di lunghezza “length”
+
+Variabili per prefisso:
+• ${!prefix*}   elenco dei nomi di variabili che iniziano con “prefix”
+
+──────────────────────────────────────────────────────────────────────────────
+25) Scaricamento con wget
+
+25.1) wget
+• Installa da un determinato url
+  wget [url]
+  (vedi anche wget --help)
