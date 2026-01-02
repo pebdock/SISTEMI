@@ -352,8 +352,11 @@ Metacaratteri principali (promemoria):
 • 2> file       → STDERR su file
 • &> file       → STDOUT + STDERR su file (sovrascrive)
 • 2>&1          → manda STDERR dove punta attualmente STDOUT
+• 1>&2          → manda STDOUT dove punta attualmente STDERR
 • N> file       → redirige il FD N su file
 • <N file       → usa “file” come input del FD N (forma meno comune)
+• /dev/null     → file speciale che scarta tutti i dati scritti e fornisce immediatamente EOF in lettura.
+                  Si usa nelle redirezioni per ignorare output o errori, ad esempio comando > /dev/null 2>&1
 
 20.2) Pipe
 • cmd1 | cmd2   → collega STDOUT di cmd1 a STDIN di cmd2
@@ -397,7 +400,7 @@ Here document (blocco multilinea):
 • Background: la shell continua a leggere comandi; il job usa i FD ereditati.
 
 Comandi/azioni:
-• comando &     → lancia in background
+• comando &     → lancia in background(da mettere dopo il processo)
   - $! contiene il PID dell’ultimo processo lanciato con &
 • Ctrl+Z        → sospende (SIGTSTP)
 • Ctrl+C        → interrompe (SIGINT)
@@ -518,3 +521,9 @@ Variabili per prefisso:
 • Installa da un determinato url
   wget [url]
   (vedi anche wget --help)
+
+──────────────────────────────────────────────────────────────────────────────
+26) Tar
+
+26.1) tar xvzf file
+  per estrarre da archivio
