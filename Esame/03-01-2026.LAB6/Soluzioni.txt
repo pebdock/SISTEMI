@@ -1,0 +1,19 @@
+32_
+cerca.sh
+#!/bin/bash
+find "$1" -name "$2" -print
+
+trovacerca.sh
+#!/bin/bash
+./cerca.sh '/usr/include/' '*std*.h'
+
+33_
+find /usr/include/ -mindepth 2 -maxdepth 2 -name "*net.h"
+
+34_
+find /usr/include/ -type f -exec head -n 3 '{}' \;
+
+35_
+find /usr/include/ -type f -exec head -n 3 '{}' \; | cut -c 1-3
+
+56_
