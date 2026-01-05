@@ -353,6 +353,7 @@ Metacaratteri principali (promemoria):
 • &> file       → STDOUT + STDERR su file (sovrascrive)
 • 2>&1          → manda STDERR dove punta attualmente STDOUT
 • 1>&2          → manda STDOUT dove punta attualmente STDERR
+• qualcosa >&2  → manda qualcosa dove punta attualmente STDERR
 • N> file       → redirige il FD N su file
 • <N file       → usa “file” come input del FD N (forma meno comune)
 • /dev/null     → file speciale che scarta tutti i dati scritti e fornisce immediatamente EOF in lettura.
