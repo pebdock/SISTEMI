@@ -21,10 +21,12 @@ INDICE (nell’ordine del file Comandi.txt)
 19) exec (apertura/chiusura FD)
 20) Redirezioni e pipe
 21) wc
-22) Processi, job control, segnali, kill/killall/nohup/disown
-23) Coreutils (sed, tail, head, tee, cut, grep)
+22) Processi, job control, segnali, kill/killall/nohup/disown, trap
+23) Coreutils (sed, tail, head, tee, cut, grep, tr)
 24) Parameter expansion (riassunto operativo)
 25) Scaricamento con wget
+26) tar
+27) REGEX
 
 ──────────────────────────────────────────────────────────────────────────────
 1) strace [comando]
@@ -351,7 +353,7 @@ Metacaratteri principali (promemoria):
 • < file        → file su STDIN
 • 2> file       → STDERR su file
 • &> file       → STDOUT + STDERR su file (sovrascrive)
-• 2>&1          → manda STDERR dove punta attualmente STDOUT
+• 2<>&1          → manda STDERR dove punta attualmente STDOUT
 • 1>&2          → manda STDOUT dove punta attualmente STDERR
 • qualcosa >&2  → manda qualcosa dove punta attualmente STDERR
 • N> file       → redirige il FD N su file
@@ -455,6 +457,69 @@ Esempio (regex sui nomi dei processi):
   killall -r 'attendi[[:upper:]]*'
 Nota: gli apici singoli impediscono alla bash di interpretare i metacaratteri.
 
+22.6) trap
+- trap (catturare segnali / cleanup)
+    - serve per dire a bash: "quando arriva un segnale (o quando lo script sta per terminare), esegui questi comandi"
+    - utilissimo per:
+        - pulire file temporanei (rm)
+        - chiudere processi lanciati in background (&)
+        - rilasciare lock / ripristinare stato prima di uscire (anche se faccio Ctrl+C)
+
+    - sintassi:
+        - trap 'comandi' SIGNAL1 SIGNAL2 ...
+        - trap 'comandi' EXIT
+            - EXIT non è un segnale "vero": è un evento che scatta quando lo script termina (anche se termina normalmente)
+
+        - trap - SIGNAL
+            - resetta il comportamento di default per quel segnale
+
+        - trap '' SIGNAL
+            - ignora quel segnale (attenzione: può rendere difficile fermare lo script)
+
+        - trap -p
+            - stampa i trap attivi (debug)
+
+    - esempio tipico (cleanup + kill di un processo in background):
+        - ./pong.sh &
+        - PONGPID=$!            # $! = PID dell'ultimo processo lanciato in background
+        - trap 'rm -f ping.txt pong.txt; kill "$PONGPID" 2>/dev/null; exit 0' INT TERM EXIT
+
+        - cosa significa:
+            - INT (SIGINT): arriva con Ctrl+C -> esegue cleanup, termina pong, esce
+            - TERM (SIGTERM): arriva con "kill PID" -> esegue cleanup, termina pong, esce
+            - EXIT: quando lo script sta per terminare -> esegue cleanup finale
+
+    - nota importante:
+        - SIGKILL (9) = kill -9 -> NON si può catturare con trap (non è intercettabile)
+        - quindi trap funziona per segnali "gestibili" (INT, TERM, ecc.) ma non per KILL
+
+- segnali (richiamo rapido)
+    - lista segnali: kill -l
+
+    - SIGINT (2)
+        - interruzione da tastiera (Ctrl+C)
+        - di default termina il processo, ma posso intercettarlo con trap
+
+    - SIGTERM (15)
+        - terminazione "gentile" (default di: kill PID)
+        - intercettabile con trap (per fare cleanup prima di uscire)
+
+    - SIGKILL (9)
+        - terminazione forzata (kill -9 PID)
+        - NON intercettabile, NON ignorabile (trap non può farci nulla)
+
+    - SIGTSTP
+        - stop da tastiera (Ctrl+Z)
+        - il processo resta "stoppato" (poi: fg / bg)
+
+    - SIGCONT
+        - riprende un processo stoppato (usato da fg / bg)
+
+    - SIGHUP
+        - "hangup": spesso quando chiudi terminale / sessione
+        - si evita con nohup / disown
+
+
 ──────────────────────────────────────────────────────────────────────────────
 23) Coreutils (promemoria operativo)
 
@@ -492,6 +557,43 @@ Esempi tipici:
   grep "parola" file
 (vedi grep --help)
 
+23.6) tr (translate / delete characters)
+• Serve per trasformare o filtrare caratteri da STDIN a STDOUT.
+• Sintassi base:
+  comando | tr SET1 SET2
+  comando | tr -d SET
+  comando | tr -s SET
+
+1) Sostituzione (translate)
+• Sostituisce ogni carattere di SET1 col corrispondente in SET2 (stessa lunghezza).
+  echo "ciao" | tr 'ao' 'A0'     -> ciA0
+• Comodissimo per cambiare maiuscole/minuscole:
+  echo "Ciao" | tr '[:upper:]' '[:lower:]'   -> ciao
+  echo "Ciao" | tr '[:lower:]' '[:upper:]'   -> CIAO
+
+2) Cancellazione (-d)
+• Elimina tutti i caratteri presenti nel SET.
+  echo "a1b2c3" | tr -d '0-9'    -> abc
+• Tenere solo alcuni caratteri: usa -c (complement) + -d
+  echo "a1b2c3" | tr -cd '0-9\n' -> 123
+  (nota: includi \n se vuoi mantenere i newline)
+
+3) Compressione ripetizioni (-s)
+• “Squeeze”: comprime sequenze di caratteri ripetuti in un solo carattere.
+  echo "ciaooo" | tr -s 'o'      -> ciao
+  echo "a   b     c" | tr -s ' ' -> a b c
+
+SET / classi utili
+• Intervalli: 'a-z' '0-9'
+• Classi POSIX: '[:lower:]' '[:upper:]' '[:digit:]' '[:space:]' '[:alpha:]' '[:alnum:]'
+• escape utili in bash: newline = $'\n' oppure \n dentro apici singoli non espande.
+
+Note importanti
+• tr lavora su CARATTERI, non su “parole”.
+• Input tipico: pipe oppure redirect:
+  tr '[:lower:]' '[:upper:]' < file
+
+
 ──────────────────────────────────────────────────────────────────────────────
 24) Parameter expansion — riassunto operativo (stringhe)
 
@@ -528,3 +630,230 @@ Variabili per prefisso:
 
 26.1) tar xvzf file
   per estrarre da archivio
+
+──────────────────────────────────────────────────────────────────────────────
+28) Regex
+- REGEX (espressioni regolari) - riassunto da esame
+
+    - Una REGEX è un linguaggio per descrivere pattern di testo (es: “righe che iniziano con…”, “numeri interi”, ecc.)
+      Serve per cercare/filtrare/sostituire testo con comandi tipo grep / sed / awk e anche in bash ([[ ... =~ ... ]]).
+
+--------------------------------------------------------------------------------
+28.1) Famiglie di regex (in Linux non esiste “una sola regex”)
+
+    - BRE (Basic Regular Expressions)
+        - usate da: grep (senza -E), sed (spesso)
+        - alcuni operatori NON funzionano “diretti” (devono essere escapati):
+            +  ?  |  ( )
+          es: in BRE per “una o più volte” devi scrivere \+ e per i gruppi \( \)
+
+    - ERE (Extended Regular Expressions)
+        - usate da: grep -E (o egrep), awk, bash [[ =~ ]] (in pratica “simile a ERE”)
+        - qui funzionano diretti: + ? | ( )
+
+    - PCRE (Perl Compatible)
+        - usate da: grep -P (se disponibile)
+        - supporta cose avanzate (lookahead/lookbehind, \d, ecc.)
+
+    - Nota: grep -F NON usa regex (match letterale fisso), spesso è la scelta migliore per cercare caratteri speciali
+      (es: cercare * senza impazzire con gli escape).
+
+--------------------------------------------------------------------------------
+28.2) Mattoni fondamentali (pattern base)
+
+    - Caratteri normali:
+        abc            -> matcha letteralmente “abc”
+
+    - Punto (jolly):
+        .              -> matcha 1 carattere qualunque (di solito escluso newline)
+
+    - Classi di caratteri (tra []):
+        [abc]          -> un carattere tra a, b, c
+        [a-z]          -> una lettera minuscola
+        [0-9]          -> una cifra
+        [^0-9]         -> NON una cifra (negazione dentro le [])
+
+    - Classi POSIX (utili e portabili, dentro []):
+        [[:digit:]]    -> cifre
+        [[:alpha:]]    -> lettere
+        [[:alnum:]]    -> lettere o cifre
+        [[:space:]]    -> spazi bianchi (spazio, tab, newline…)
+        [[:lower:]]    -> minuscole
+        [[:upper:]]    -> maiuscole
+        [[:punct:]]    -> punteggiatura
+
+--------------------------------------------------------------------------------
+28.3) Quantificatori (ripetizioni)
+
+    (in ERE/PCRE sono diretti; in BRE spesso vanno escapati)
+
+    - *   -> 0 o più volte
+        a*         matcha: "" , "a" , "aaaa"
+
+    - +   -> 1 o più volte
+        a+         matcha: "a" , "aaaa" (non stringa vuota)
+
+    - ?   -> 0 o 1 volta (opzionale)
+        colou?r    matcha "color" e "colour"
+
+    - {n}    -> esattamente n volte
+        [0-9]{4}   matcha 4 cifre
+
+    - {n,}   -> almeno n volte
+        a{2,}      matcha "aa", "aaa", ...
+
+    - {n,m}  -> da n a m volte
+        [0-9]{2,4}
+
+--------------------------------------------------------------------------------
+28.4) Ancore (posizione nella riga/stringa)
+
+    - ^   -> inizio riga/stringa
+    - $   -> fine riga/stringa
+
+    Esempio:
+        ^abc$   matcha SOLO la riga/stringa “abc” e basta
+
+--------------------------------------------------------------------------------
+28.5) Alternativa e raggruppamento
+
+    - |        -> oppure (alternativa)
+        cat|dog
+
+    - ( ... )  -> gruppo (in ERE/PCRE; in BRE spesso \( ... \))
+        (ab)+   ripete la sequenza “ab” una o più volte
+
+--------------------------------------------------------------------------------
+28.6) Escape (cercare caratteri speciali letterali)
+
+    - Alcuni caratteri hanno significato speciale in regex: . * + ? [ ] ( ) { } ^ $ | \
+      Se vuoi cercarli letterali, fai escape con \
+
+    esempi:
+        \.   -> punto letterale
+        \*   -> asterisco letterale
+        \[   -> parentesi quadra letterale
+
+    alternativa semplice (consigliata quando possibile):
+        grep -F '*' file    -> cerca l’asterisco come testo normale, senza regex
+
+--------------------------------------------------------------------------------
+28.7) Backreference (riferimento a gruppi) - spesso in ERE/PCRE, dipende dal tool
+
+    - idea: catturi un gruppo e lo riusi
+      Esempio:
+        ^(ab)\1$    matcha “abab”
+      (in alcuni tool serve sintassi diversa a seconda di BRE/ERE)
+
+--------------------------------------------------------------------------------
+28.8) Greedy vs Lazy
+
+    - In ERE classico i quantificatori sono di solito “greedy” (prendono il più possibile).
+    - In PCRE esiste anche “lazy” (minimo possibile), es: .*?
+      Nota: .*? non è standard ERE.
+
+--------------------------------------------------------------------------------
+28.9) Regex nei comandi (uso pratico)
+
+    - grep:
+        grep 'REGEX' file      -> BRE
+        grep -E 'REGEX' file   -> ERE
+        grep -P 'REGEX' file   -> PCRE (se disponibile)
+        grep -F 'TESTO' file   -> match fisso (NO regex)
+
+      opzioni utili:
+        -q  (silenzioso, usa solo exit status)
+        -n  (mostra numero di riga)
+        -c  (conta righe matchate)
+        -r  (ricorsivo)
+        -w  (parola intera, utile ma non sempre perfetto)
+
+    - sed:
+        sed 's/REGEX/REPL/' file
+        sed -E 's/(ab)+/X/' file   (se supportato, abilita ERE)
+
+    - awk (ERE):
+        awk '/REGEX/ {print $0}' file
+        awk '$1 ~ /^abc/ {print $2}' file
+
+    - bash ([[ ... =~ ... ]]) (match regex in bash):
+        if [[ "$x" =~ REGEX ]]; then ...
+        Nota: funziona con [[ ... ]] (non con [ ... ])
+
+--------------------------------------------------------------------------------
+28.10) Pattern pronti (mini-esempi utili)
+
+    - Intero (anche negativo):
+        ^-?[0-9]+$
+
+    - Intero con segno + o -:
+        ^[+-]?[0-9]+$
+
+    - Riga che contiene almeno un asterisco:
+        \*
+      oppure: grep -F '*'
+
+    - “identificatore” tipo variabile (lettere/cifre/_):
+        ^[[:alnum:]_]+$
+
+    - Email semplice (non perfetta):
+        ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$
+
+----------------------------------------------------------------------------------
+29) Dettagli while
+WHILE / READ con condizioni multiple (&& / ||) + file descriptor (-u)
+
+Idea chiave
+• In bash, la “condizione” di while/until può essere una LISTA di comandi.
+• Il ciclo continua finché l’ULTIMO comando della lista termina con exit status 0.
+• Puoi concatenare read + test [[...]] + aritmetica ((...)) con && / ||.
+
+29.1) read + condizioni extra sulla riga/campi
+• Continua solo se read riesce (non EOF) E la condizione è vera:
+  while IFS= read -r line && [[ -n "$line" ]]; do
+    echo "$line"
+  done < file.txt
+
+29.2) read da file descriptor (-u) con condizioni (stile esame)
+• Apro FD, leggo da lì, chiudo FD:
+  exec {FD}< file.txt
+  while IFS= read -r -u "$FD" a1 a2 a3 && [[ -n "$a1" ]] && [[ "$a1" != "#"* ]]; do
+    echo "campi: $a1 | $a2 | $a3"
+  done
+  exec {FD}<&-
+
+29.3) Due read nella condizione (es. coppie di righe)
+• Itera a coppie: termina se il secondo read fallisce:
+  while IFS= read -r r1 && IFS= read -r r2; do
+    echo "$r1 / $r2"
+  done < file.txt
+
+29.4) Due file in parallelo (due FD) + stop se manca un campo
+  exec {F1}< f1.txt
+  exec {F2}< f2.txt
+  while IFS= read -r -u "$F1" a1 a2 a3 a4 \
+     && IFS= read -r -u "$F2" b1 b2 b3 b4 \
+     && [[ -n "$a4" && -n "$b4" ]]; do
+    echo "$a1 $b1 $a2 $b2 $a3 $b3 $a4 $b4"
+  done
+  exec {F1}<&-; exec {F2}<&-
+
+29.5) read + limite numerico (massimo N righe)
+  i=0
+  while IFS= read -r line && (( i < 4 )); do
+    echo "$line"
+    ((i++))
+  done < file.txt
+
+29.6) Alternativa: condizione semplice e filtri nel corpo (continue/break)
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    [[ "$line" != "#"* ]] || continue
+    echo "$line"
+  done < file.txt
+
+Nota importante (pipe + while)
+• “cmd | while read ...” spesso gira in subshell → variabili modificate dentro possono NON uscire.
+• Se devi mantenere variabili, preferisci:
+  while IFS= read -r x; do ...; done < <(cmd)
+
