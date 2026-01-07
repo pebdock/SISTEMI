@@ -261,7 +261,7 @@ Confronti (promemoria)
 ──────────────────────────────────────────────────────────────────────────────
 13) find
 • Ricerca file/directory. Per opzioni ed esempi: find --help (o man find).
-
+  SE METTO exec ricordare che per finire i comandi su usa \;
 ──────────────────────────────────────────────────────────────────────────────
 14) Riferimento indiretto: ${!nomevar}
 Esempio:
@@ -712,8 +712,7 @@ Variabili per prefisso:
 ──────────────────────────────────────────────────────────────────────────────
 26) Tar
 
-26.1) tar xvzf file
-  per estrarre da archivio
+26.1) tar xvzf file per estrarre da archivio
 
 ──────────────────────────────────────────────────────────────────────────────
 28) Regex
