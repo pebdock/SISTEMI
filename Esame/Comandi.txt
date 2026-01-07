@@ -27,6 +27,7 @@ INDICE (nell’ordine del file Comandi.txt)
 25) Scaricamento con wget
 26) tar
 27) REGEX
+28) dettagli while
 
 ──────────────────────────────────────────────────────────────────────────────
 1) strace [comando]
@@ -83,18 +84,41 @@ Nota: spesso è disabilitata di default in contesti non interattivi.
 • $!              → PID dell’ultimo processo lanciato in background (con &)
 • ${var}          → forma esplicita (utile per evitare ambiguità: ${var}X)
 • ${#var}         → lunghezza (in caratteri/byte a seconda del contesto/locale)
+• ${!var}         → espansione indiretta: se var contiene il nome di un’altra variabile, ${!var} restituisce il valore di quella variabile.
+  Esempio:
+    a="X"
+    X="ciao"
+    echo "${!a}"    -> ciao
 
 3.5) Arithmetic expansion
-• $(( ... ))      → espande un’espressione aritmetica
-• (( ... ))       → valuta un’espressione “come comando” (serve spesso per if/while)
-Esempi:
-  echo $((3+4))
-  if (( i < 10 )); then echo ok; fi
+• $(( ... ))  → ARITHMETIC EXPANSION (produce un valore)
+  - Valuta l’espressione e la sostituisce con il risultato.
+  - Si usa quando ti serve un numero “stampabile” o da assegnare.
+  Esempi:
+    echo $((3+4))          -> 7
+    x=$((i+1))             # assegna il risultato a x
+    echo "tot=$((a*b))"
+• (( ... ))   → ARITHMETIC EVALUATION (è un comando, ritorna exit status)
+  - Valuta l’espressione come comando.
+  - Exit status: 0 se l’espressione è “vera” (risultato != 0), 1 se “falsa” (risultato == 0).
+  - Si usa per condizioni in if/while e per incrementi/decrementi.
+  Esempi:
+    if (( i < 10 )); then echo ok; fi
+    while (( i < 10 )); do ((i++)); done
+    ((sum += x))           # aggiornamento variabile senza dover usare $((...))
+
+Nota pratica
+• Per test numerici: preferisci ((...)) invece di [[ ... -lt ... ]].
+• $((...)) è utile quando devi inserire il risultato dentro una stringa o in un’assegnazione.
 
 3.6) Command substitution
-• `comando` oppure $(comando)  → sostituisce con lo stdout del comando
-• Preferisci $(...) perché annidabile:
-  echo "oggi: $(date)"
+• $(comando)      → command substitution: esegue comando e sostituisce l’espressione con il suo stdout (in genere senza newline finali). È la forma consigliata perché è più leggibile e annidabile.
+  Esempio:
+    echo "oggi: $(date)"
+• `comando`       → stessa cosa (stdout del comando), ma sintassi vecchia: annidare è scomodo e richiede escaping di `\``.
+  Esempio:
+    echo "oggi: `date`"
+
 
 3.7) Quoting
 • "..."  (double quotes)
@@ -149,10 +173,10 @@ Concetti base
   - user: 7 = rwx
   - group: 5 = r-x
   - others: 5 = r-x
-• Bit speciali:
-  - setuid: 4xxx (permesso “s” sul campo user)
-  - setgid: 2xxx (permesso “s” sul campo group)
-  - sticky: 1xxx (permesso “t” sul campo others, tipico in /tmp)
+• Bit speciali (permessi “extra”)
+  - setuid (4000): su un file eseguibile, il processo parte con l’UID del proprietario del file (non dell’utente che lo lancia). In ls appare “s” al posto della x dell’utente: -rwsr-xr-x.
+  - setgid (2000): su un file eseguibile, il processo parte con il GID del gruppo del file; su una directory, i file/dir creati dentro ereditano il gruppo della directory. In ls appare “s” al posto della x del gruppo: -rwxr-sr-x (o drwxr-s---).
+  - sticky (1000): su una directory, solo il proprietario del file (o root) può cancellare/rinominare file dentro, anche se la directory è scrivibile da tutti. In ls appare “t” al posto della x degli others: drwxrwxrwt (es. /tmp).
 
 ──────────────────────────────────────────────────────────────────────────────
 6) ls
@@ -255,26 +279,94 @@ Nota sulle espressioni aritmetiche:
   e 1 se è “falsa” (risultato == 0).
 
 ──────────────────────────────────────────────────────────────────────────────
-16) Cicli / if + operatori ; || &&
+16) Cicli / if + operatori ; || && (Bash)
 
-Cicli:
-  for var in lista; do ...; done
-  for (( expr1; expr2; expr3 )); do ...; done
+Idea base: “liste di comandi”
+• In bash una condizione non è solo “vero/falso”: è una LISTA di comandi.
+• Ogni comando ritorna un exit status: 0 = successo (usato come “vero”), !=0 = fallimento (“falso”).
 
-If:
-  if listA; then
-    listB
-  elif listC; then
-    listD
+Operatori più usati
+• ;   → separa comandi sulla stessa riga (sequenza):
+  cmd1; cmd2; cmd3
+
+• &&  → AND: esegue il comando a destra SOLO se quello a sinistra è riuscito (exit 0):
+  mkdir dir && cd dir
+  [[ -f file ]] && echo "esiste"
+
+• ||  → OR: esegue il comando a destra SOLO se quello a sinistra è fallito (exit !=0):
+  cd dir || exit 1
+  [[ -f file ]] || echo "manca"
+
+Combinazioni tipiche (pattern da esame)
+• “Se fallisce esci”:
+  cmd || exit 1
+• “Se ok fai qualcosa”:
+  cmd && echo "ok"
+• “If corto”:
+  [[ cond ]] && fai_qualcosa || fai_altro
+  (attenzione: se fai_qualcosa fallisce, parte anche fai_altro)
+
+Cicli
+• for var in lista; do ...; done
+  - Itera su una lista di parole/elementi (argomenti, glob, array, ecc.)
+  Esempi:
+    for f in *.txt; do echo "$f"; done
+    for a in "$@";  do echo "$a"; done
+
+• for (( expr1; expr2; expr3 )); do ...; done
+  - Stile C: init; cond; step (aritmetico)
+  Esempio:
+    for ((i=0; i<10; i++)); do echo "$i"; done
+
+If (struttura)
+• if LISTA_COMANDI; then ... fi
+  - Il ramo “then” parte se l’ultima cosa valutata nella lista ha exit status 0.
+  - Puoi mettere più comandi nella condizione usando ; && ||.
+Esempi:
+  if [[ -f "$1" ]] && [[ -r "$1" ]]; then
+    echo "ok"
   else
-    listE
+    echo "errore" >&2
   fi
 
-Operatori di controllo:
-• ;   → esegue sempre il comando successivo
-• cmd1 && cmd2 → esegue cmd2 solo se cmd1 ha exit status 0
-• cmd1 || cmd2 → esegue cmd2 solo se cmd1 ha exit status != 0
+elif / else
+• elif è un altro “if” in cascata: viene provato solo se i precedenti sono falsi.
 
+WHILE (cicli)
+
+• while LISTA_COMANDI; do
+    corpo
+  done
+  - Ripete il corpo FINCHÉ la lista di comandi nella condizione ha exit status 0 (successo).
+  - Appena la condizione fallisce (exit !=0), il ciclo termina.
+
+Esempi tipici
+
+1) Condizione con confronto
+  i=0
+  while (( i < 10 )); do
+    echo "$i"
+    ((i++))
+  done
+
+2) Lettura righe da file (forma “da esame”)
+  while IFS= read -r riga; do
+    echo "$riga"
+  done < file.txt
+
+3) Condizione composta con && / ||
+  while IFS= read -r riga && [[ -n "$riga" ]]; do
+    echo "$riga"
+  done < file.txt
+
+4) Loop infinito
+  while :; do
+    echo "loop"
+    break
+  done
+
+Nota
+• La condizione del while può essere una lista con ; && ||, come negli if.
 ──────────────────────────────────────────────────────────────────────────────
 17) File Descriptor (FD)
 • Astrazione per l’accesso a file/stream.
@@ -353,7 +445,7 @@ Metacaratteri principali (promemoria):
 • < file        → file su STDIN
 • 2> file       → STDERR su file
 • &> file       → STDOUT + STDERR su file (sovrascrive)
-• 2<>&1          → manda STDERR dove punta attualmente STDOUT
+• 2>&1          → manda STDERR dove punta attualmente STDOUT
 • 1>&2          → manda STDOUT dove punta attualmente STDERR
 • qualcosa >&2  → manda qualcosa dove punta attualmente STDERR
 • N> file       → redirige il FD N su file
@@ -521,78 +613,70 @@ Nota: gli apici singoli impediscono alla bash di interpretare i metacaratteri.
 
 
 ──────────────────────────────────────────────────────────────────────────────
-23) Coreutils (promemoria operativo)
+23) Coreutils (promemoria operativo) — spiegazione “da esame”
+
+Idea generale
+• Sono comandi “piccoli” che lavorano su testo tramite pipe/redirezioni.
+• Schema tipico: comando_che_produce_testo | filtro1 | filtro2 > output
 
 23.1) sed (stream editor)
-Esempi tipici:
-• Sostituzione (prima occorrenza per riga):
-  sed 's/togli/metti/' file
-• Sostituzione globale:
-  sed 's/togli/metti/g' file
-• Rimuovere 1° carattere di ogni riga:
-  sed 's/^.//' file
-• Rimuovere ultimo carattere di ogni riga:
-  sed 's/.$//' file
-• Rimuovere primi 4 caratteri a inizio riga (regex estese spesso con -E / -r):
-  sed -E 's/^.{4}//' file
-• Rimuovere ogni occorrenza di qualcosa aggiungendo g
-  sed 's/qualcosa//g' file
+• Modifica testo “al volo” riga per riga (non cambia il file, a meno di -i).
+• Operazione più comune: s/REGEX/SOSTITUZIONE/ (substitute)
+  - senza g: sostituisce solo la prima occorrenza per riga
+  - con g: sostituisce tutte le occorrenze per riga
+Esempi utili:
+  sed 's/togli/metti/' file        # 1ª occorrenza per riga
+  sed 's/togli/metti/g' file       # tutte le occorrenze
+  sed 's/^.//' file                # elimina 1° char di ogni riga (^ = inizio, . = un char)
+  sed 's/.$//' file                # elimina ultimo char di ogni riga ($ = fine)
+  sed -E 's/^.{4}//' file          # elimina i primi 4 char (.{4} = 4 caratteri)
+• In-place (modifica il file): sed -i '...' file  (attenzione: è distruttivo)
 
-23.2) tail / head (guardare con help altre opzioni)
-• head -n 20 file      → prime 20 righe
-• tail -n 20 file      → ultime 20 righe
-• tail -f file         → segue append (log)
+23.2) head / tail
+• Servono per prendere “pezzi” di file (righe).
+  head -n 20 file   # prime 20 righe
+  tail -n 20 file   # ultime 20 righe
+  tail -f file      # segue un file che cresce (log): continua a mostrare nuove righe
 
-23.3) tee (guardare con help altre opzioni)
-• Duplica lo stream: stampa a video e scrive su file:
+23.3) tee
+• Duplica lo stream: quello che arriva in input lo stampa a video e lo scrive anche su file.
   comando | tee output.txt
+• Utile quando vuoi “vedere” l’output ma anche salvarlo, senza perdere la pipe.
 
 23.4) cut
-• Estrae colonne/campi:
-  cut -d ':' -f 1 /etc/passwd
-  cut -c 5-6 oppire -5 ecc... (ALtre opzioni con help)
+• Estrae “colonne” in due modi principali:
+  1) Per delimitatore (-d) e campo (-f): (campo = colonna)
+     cut -d ':' -f 1 /etc/passwd      # prende il 1° campo separato da :
+  2) Per posizioni di caratteri (-c):
+     cut -c 1-5 file                  # caratteri da 1 a 5
+     cut -c 5- file                   # dal 5° fino alla fine
+     cut -c -5 file                   # dai primi 5
+• Nota: -f lavora su “campi” separati da un delimitatore, -c lavora su “posizioni” fisse.
 
 23.5) grep
-• Cerca pattern:
+• Cerca righe che matchano un pattern.
   grep "parola" file
-(vedi grep --help)
+• Opzioni tipiche:
+  grep -n "pat" file   # mostra numero di riga
+  grep -i "pat" file   # case-insensitive
+  grep -v "pat" file   # righe che NON matchano
+  grep -E "re" file    # regex estese (ERE)
+  grep -o "pat" file   # stampa solo i match (utile per contare con wc -l)
+• Per contare righe matchate: grep -c "pat" file
 
 23.6) tr (translate / delete characters)
-• Serve per trasformare o filtrare caratteri da STDIN a STDOUT.
-• Sintassi base:
-  comando | tr SET1 SET2
-  comando | tr -d SET
-  comando | tr -s SET
-
-1) Sostituzione (translate)
-• Sostituisce ogni carattere di SET1 col corrispondente in SET2 (stessa lunghezza).
-  echo "ciao" | tr 'ao' 'A0'     -> ciA0
-• Comodissimo per cambiare maiuscole/minuscole:
-  echo "Ciao" | tr '[:upper:]' '[:lower:]'   -> ciao
-  echo "Ciao" | tr '[:lower:]' '[:upper:]'   -> CIAO
-
-2) Cancellazione (-d)
-• Elimina tutti i caratteri presenti nel SET.
-  echo "a1b2c3" | tr -d '0-9'    -> abc
-• Tenere solo alcuni caratteri: usa -c (complement) + -d
-  echo "a1b2c3" | tr -cd '0-9\n' -> 123
-  (nota: includi \n se vuoi mantenere i newline)
-
-3) Compressione ripetizioni (-s)
-• “Squeeze”: comprime sequenze di caratteri ripetuti in un solo carattere.
-  echo "ciaooo" | tr -s 'o'      -> ciao
-  echo "a   b     c" | tr -s ' ' -> a b c
-
-SET / classi utili
-• Intervalli: 'a-z' '0-9'
-• Classi POSIX: '[:lower:]' '[:upper:]' '[:digit:]' '[:space:]' '[:alpha:]' '[:alnum:]'
-• escape utili in bash: newline = $'\n' oppure \n dentro apici singoli non espande.
-
-Note importanti
-• tr lavora su CARATTERI, non su “parole”.
-• Input tipico: pipe oppure redirect:
-  tr '[:lower:]' '[:upper:]' < file
-
+• Trasforma caratteri (non parole). Lavora da stdin a stdout.
+• Traduzione (sostituisce caratteri):
+  echo "ciao" | tr 'ao' 'A0'          # a->A, o->0
+  tr '[:lower:]' '[:upper:]' < file  # minuscole->maiuscole
+• Cancellazione:
+  echo "a1b2c3" | tr -d '0-9'         # elimina cifre
+  echo "a1b2c3" | tr -cd '0-9\n'      # tiene solo cifre (e newline)
+• Compressione ripetizioni:
+  echo "a   b     c" | tr -s ' '      # comprime spazi multipli
+• Note rapide:
+  - SET può essere 'a-z', '0-9' o classi '[:digit:]', '[:space:]', ecc.
+  - tr non capisce “regex”, solo insiemi di caratteri.
 
 ──────────────────────────────────────────────────────────────────────────────
 24) Parameter expansion — riassunto operativo (stringhe)
