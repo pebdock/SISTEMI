@@ -1,4 +1,2 @@
 #!/bin/bash
-while read RIGA ; do
-	cut -d $'\t' -f 3 <<< "${RIGA//\"/}"
-done < ./cadutevic.txt | sort | uniq -c
+cut -d $'\t' -f 3 ./cadutevic.txt | tr -d '"' | sort | uniq -c
